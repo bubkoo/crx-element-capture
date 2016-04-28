@@ -1,0 +1,34 @@
+{
+  "name": "crx-element-capture",
+  "version": "0.0.1",
+  "description": "Chrome extension for screen capture any HTML element on a webpage.",
+  "main": "index.js",
+  "scripts": {
+    "lint": "jshint src/**/*.js",
+    "pretest": "npm run lint",
+    "test": "echo "
+  },
+  "keywords": [
+    "screen",
+    "capture",
+    "shot",
+    "cut",
+    "element",
+    "chrome",
+    "extension",
+    "APP"
+  ],
+  "author": {
+    "name": "bubkoo",
+    "email": "bubkoo.wy@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bubkoo/crx-element-capture.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bubkoo/crx-element-capture/issues"
+  },
+  "homepage": "https://github.com/bubkoo/crx-element-capture#readme"
+}

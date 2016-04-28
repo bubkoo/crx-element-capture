@@ -1,0 +1,45 @@
+{
+  "name": "Element Capture 2",
+  "version": "0.0.1",
+  "description": "Screen capture any HTML element on a webpage.",
+  "author": "bubkoo<bubkoo.wy@gmail.com>",
+  "manifest_version": 2,
+  "minimum_chrome_version": "26",
+  "icons": {
+    "16": "images/screenshot-16.png",
+    "48": "images/screenshot-48.png",
+    "128": "images/screenshot-48.png"
+  },
+  "page_action": {
+    "default_icon": {
+      "19": "images/screenshot-18.png",
+      "38": "images/screenshot-39.png"
+    },
+    "default_title": "Click me and select element to capture"
+  },
+  "permissions": [
+    "clipboardWrite",
+    "activeTab",
+    "tabs",
+    "http://*/",
+    "https://*/"
+  ],
+  "background": {
+    "scripts": [
+      "js/background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "js/content.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ]
+}
