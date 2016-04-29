@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Element Capture Tests</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        p {
+            margin: 0;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+<div style="margin: 50px 0 0 50px; border: 1px solid #E80C7A; width: 300px; height: 300px; background-color: #7279AD;">
+    <p>
+        Element without scroll-bars.
+    </p>
+</div>
+<div style="margin: 50px 0 0 50px; border: 1px solid red; width: 2000px; height: 300px; background-color: #D98614; position: relative">
+    <div style="position: absolute; top: 5px; left: 5px;">top-left
+    </div>
+    <div style="position: absolute; top: 5px; right: 5px;">
+        top-right
+    </div>
+    <div style="position: absolute; bottom: 5px; left: 5px;">
+        bottom-left
+    </div>
+    <div style="position: absolute; bottom: 5px; right: 5px;">
+        bottom-right
+    </div>
+</div>
+<div style="float: left; margin: 50px 0 0 50px; border: 1px solid red; width: 300px; height: 2000px; background-color: #D98614; position: relative">
+    <div style="position: absolute; top: 5px; left: 5px;">top-left
+    </div>
+    <div style="position: absolute; top: 5px; right: 5px;">
+        top-right
+    </div>
+    <div style="position: absolute; bottom: 5px; left: 5px;">
+        bottom-left
+    </div>
+    <div style="position: absolute; bottom: 5px; right: 5px;">
+        bottom-right
+    </div>
+</div>
+<div style="float: left; margin: 50px 0 0 50px; border: 1px solid #E80C7A; width: 300px;height: 300px; overflow: auto; padding: 0">
+    <div style="width:500px; height: 500px; background-color: #96B545; color: #FFF; padding: 0">
+        <p>
+            Element with horizontal and vertical scroll-bars.
+        </p>
+        <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi
+            dictum mauris ligula. Maecenas pulvinar finibus tempor. Sed non
+            purus in odio tincidunt dictum non sit amet massa. Aenean hendrerit
+            tempor nibh, accumsan molestie lacus lobortis quis. Phasellus vitae
+            purus et nulla scelerisque convallis. Pellentesque malesuada, arcu
+            in efficitur ullamcorper, neque orci faucibus ex, sed sodales dolor
+            diam nec libero. Donec laoreet mi et ultrices pharetra. Praesent
+            consectetur arcu vel imperdiet aliquet. Etiam ac ante et magna
+            euismod posuere. Morbi nec iaculis enim.
+        </p>
+        <p>
+            Sed congue quam at ante placerat tempus. Vivamus aliquam maximus
+            sapien eu sagittis. Donec venenatis, metus eu lobortis scelerisque,
+            justo arcu ullamcorper ligula, et ultrices erat purus vitae velit.
+            Suspendisse et semper dolor, a maximus purus. Sed ultrices est in
+            ullamcorper rutrum. Vestibulum quis sollicitudin nunc. Etiam
+            sollicitudin lacinia condimentum. Vivamus sem risus, finibus
+            pulvinar nunc quis, mollis condimentum eros. Etiam at lobortis ex.
+            Integer placerat velit id diam porttitor, quis faucibus purus
+            sagittis. Fusce varius, leo at vulputate mollis, nibh turpis
+            consequat turpis, non auctor velit metus non nibh. Suspendisse et
+            enim tempor, euismod nibh eget, sodales turpis. Morbi egestas quam
+            sed bibendum tincidunt. Maecenas tristique tristique turpis sit amet
+            mattis.
+        </p>
+    </div>
+</div>
+</body>
+</html>
