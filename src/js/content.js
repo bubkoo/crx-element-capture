@@ -20,7 +20,7 @@ var styleNode;
 var overlay;
 var outline;
 
-var delay = 500;
+var delay = 150;
 
 var element;
 var metadata = {};
@@ -54,21 +54,21 @@ function start(callback) {
 
     overlay = document.createElement('div');
 
-    overlay.style.position      = 'absolute';
-    overlay.style.top           = '0';
-    overlay.style.left          = '0';
-    overlay.style.width         = '100%';
-    overlay.style.height        = '100%';
     overlay.style.pointerEvents = 'none';
-
+    overlay.style.position      = 'absolute';
+    overlay.style.left          = '0';
+    overlay.style.top           = '0';
 
     outline = document.createElement('div');
 
-    outline.style.position = 'fixed';
+    outline.style.position = 'absolute';
     outline.style.zIndex   = '99999';
 
     overlay.appendChild(outline);
   }
+
+  overlay.style.width  = document.body.scrollWidth + 'px';
+  overlay.style.height = document.body.scrollHeight + 'px';
 
   if (!overlay.parentNode) {
     document.body.appendChild(overlay);
@@ -124,8 +124,8 @@ function start(callback) {
         .replace(/\{height\}/g, metadata.height + 2 * strokeWidth)
         .replace('{strokeWidth}', strokeWidth);
 
-      outline.style.top    = (metadata.top - strokeWidth) + 'px';
-      outline.style.left   = (metadata.left - strokeWidth) + 'px';
+      outline.style.top    = (document.body.scrollTop + metadata.top - strokeWidth) + 'px';
+      outline.style.left   = (document.body.scrollLeft + metadata.left - strokeWidth) + 'px';
       outline.style.width  = (metadata.width + 2 * strokeWidth) + 'px';
       outline.style.height = (metadata.height + 2 * strokeWidth) + 'px';
 
@@ -150,10 +150,10 @@ function start(callback) {
 
   function capture() {
     var parent = getScrollParent(element);
+    var isBody = parent === element.ownerDocument.body;
 
-    if (needScroll(parent)) {
-
-      return parent === element.ownerDocument.body
+    if (needScroll(parent, isBody)) {
+      return isBody
         ? scrollBody(parent)
         : scrollElement(parent)
     }
@@ -176,18 +176,23 @@ function start(callback) {
     });
   }
 
-  function needScroll(parent) {
+  function needScroll(parent, isBody) {
 
-    var width;
-    var height;
+    // parent is body
+    if (isBody) {
+      if (metadata.left < 0 || metadata.top < 0) {
+        return true;
+      }
 
-    // check if element is out of the viewport
-    if (parent === document.body) {
-      width  = window.innerWidth;
-      height = window.innerHeight;
+      var docEle  = element.ownerDocument.documentElement;
+      var vWidth  = docEle.clientWidth;
+      var vHeight = docEle.clientHeight;
 
-      return metadata.left + metadata.width > width
-        || metadata.top + metadata.height > height;
+      if (element === element.ownerDocument.body) {
+        return element.scrollWidth > vWidth || element.scrollHeight > vHeight;
+      }
+
+      return metadata.left + metadata.width > vWidth || metadata.top + metadata.height > vHeight;
     }
 
     if (metadata.width > parent.clientWidth
@@ -200,28 +205,29 @@ function start(callback) {
     var docEle = element.ownerDocument.documentElement;
 
     // save parent's status
-    var overflow  = parent.style.overflow;
-    var originalX = parent.scrollLeft;
-    var originalY = parent.scrollTop;
-
-    var eBound = getBounds(element);
-    var pBound = getBounds(parent);
+    var overflow = parent.style.overflow;
+    var originX  = parent.scrollLeft;
+    var originY  = parent.scrollTop;
+    var eBound   = getBounds(element);
 
     // disable all scrollBars, restore it when captured
     parent.style.overflow = 'hidden';
-    // scroll element to top-left corner of the viewport
+    // try to scroll element to top-left corner of the viewport
     parent.scrollLeft = parent.scrollLeft + eBound.left;
     parent.scrollTop  = parent.scrollTop + eBound.top;
 
+    var startX = parent.scrollLeft;
+    var startY = parent.scrollTop;
+
     eBound = getBounds(element);
-    pBound = getBounds(parent);
 
     // the screen capture size
-    var fullWidth  = element.offsetWidth;
-    var fullHeight = element.offsetHeight;
+    var fullWidth  = element.scrollWidth || element.offsetWidth;
+    var fullHeight = element.scrollHeight || element.offsetHeight;
 
-    var xDelta = Math.min(parent.clientWidth, docEle.clientWidth);
-    var yDelta = Math.min(parent.clientHeight, docEle.clientHeight);
+    // viewport size
+    var xDelta = docEle.clientWidth;
+    var yDelta = docEle.clientHeight;
 
     // collect the capture blocks
     var xPos = 0;
@@ -248,9 +254,6 @@ function start(callback) {
           ? eBound.top + yPos + yDelta - fullHeight
           : eBound.top;
 
-        //block.sx -= pBound.left;
-        //block.sy -= pBound.top;
-
         blocks.push(block);
 
         xPos += xDelta;
@@ -258,11 +261,10 @@ function start(callback) {
       yPos += yDelta;
     }
 
-
     function reset() {
       parent.style.overflow = overflow;
-      parent.scrollLeft     = originalX;
-      parent.scrollTop      = originalY;
+      parent.scrollLeft     = originX;
+      parent.scrollTop      = originY;
     }
 
     (function process() {
@@ -274,28 +276,20 @@ function start(callback) {
 
       var next = blocks.shift();
 
-      parent.scrollLeft = next.dx - pBound.left;
-      parent.scrollTop  = next.dy - pBound.top;
+      parent.scrollLeft = next.dx + startX;
+      parent.scrollTop  = next.dy + startY;
 
-      var data = {
-        action: 'capture',
-        sx: next.sx,
-        sy: next.sy,
-        dx: next.dx,
-        dy: next.dy,
-        width: next.width,
-        height: next.height,
-        totalWidth: fullWidth,
-        totalHeight: fullHeight,
-        ratio: window.devicePixelRatio
-      };
+      next.action      = 'capture';
+      next.ratio       = window.devicePixelRatio;
+      next.totalWidth  = fullWidth;
+      next.totalHeight = fullHeight;
 
       // need to wait for things to settle
       window.setTimeout(function () {
         // in case the below callback never returns, cleanup
         var timer = window.setTimeout(reset, 1250);
 
-        chrome.runtime.sendMessage(data, function (captured) {
+        chrome.runtime.sendMessage(next, function (captured) {
 
           window.clearTimeout(timer);
 
