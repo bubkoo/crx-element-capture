@@ -125,6 +125,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, callback) {
   }
 
   var action = message && message.action;
+
   if (action === 'enable') {
     chrome.pageAction.show(sender.tab.id);
   } else if (action === 'capture') {
@@ -193,6 +194,7 @@ function capturePage(data, sender, callback) {
 
 // send message to tabs
 chrome.pageAction.onClicked.addListener(function onClicked(tab) {
+
   screenshot = {};
 
   chrome.tabs.sendMessage(tab.id, { action: 'start' }, function () {

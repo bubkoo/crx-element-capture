@@ -1,19 +1,21 @@
 'use strict';
 
-var strokeWidth = 2;
-var styleNode;
 var overlay;
 var outline;
+var styleNode;
+var strokeWidth = 2;
 
 var delay = 150;
 
 var element;
 var metadata;
+var onFinish;
+
+
+// event handler
+// -------------
 
 function start(callback) {
-
-  element  = null;
-  metadata = null;
 
   if (!styleNode) {
     styleNode = document.createElement('style');
@@ -54,7 +56,7 @@ function start(callback) {
     overlay.appendChild(outline);
   }
 
-  var docSize = getDocumentSize();
+  var docSize = getDocumentSize(document);
 
   overlay.style.width  = docSize.width + 'px';
   overlay.style.height = docSize.height + 'px';
@@ -69,328 +71,263 @@ function start(callback) {
     body.addEventListener('keydown', shortcut, false);
   }
 
-  function clean() {
+  onFinish = function () {
+    callback && callback();
 
-    overlay.parentNode.removeChild(overlay);
-    styleNode.parentNode.removeChild(styleNode);
+    element  = null;
+    metadata = null;
+    onFinish = null;
+  };
+}
 
-    outline.innerHTML    = '';
-    outline.style.top    = '0px';
-    outline.style.left   = '0px';
-    outline.style.width  = '0px';
-    outline.style.height = '0px';
+function highlight(e) {
 
-    var body = document.body;
+  if (element !== e.target) {
 
-    body.removeEventListener('mousemove', highlight, false);
-    body.removeEventListener('mousedown', capture, false);
-    body.removeEventListener('keydown', shortcut, false);
+    element  = e.target;
+    metadata = getBounds(element);
+
+    var pathData = 'M' + strokeWidth / 2 + ' ' + strokeWidth / 2
+      + 'H' + (metadata.width + strokeWidth)
+      + 'V' + (metadata.height + strokeWidth)
+      + 'H' + strokeWidth / 2
+      + 'V' + strokeWidth / 2;
+
+    var html = '' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewport="0 0 {width} {height}" style="border: 0;">' +
+      '  <path fill="rgba(48,132,242,.2)" ' +
+      '        stroke="rgb(217,35,68)" ' +
+      '        stroke-width="{strokeWidth}" ' +
+      '        stroke-dasharray="7" ' +
+      '        style="animation: ant-line 1500s infinite linear; animation-delay: .3s; "' +
+      '        d="{d}"></path>' +
+      '</svg>';
+
+    html = html
+      .replace('{d}', pathData)
+      .replace(/\{width\}/g, metadata.width + 2 * strokeWidth)
+      .replace(/\{height\}/g, metadata.height + 2 * strokeWidth)
+      .replace('{strokeWidth}', '' + strokeWidth);
+
+    outline.style.top    = (document.body.scrollTop + metadata.top - strokeWidth) + 'px';
+    outline.style.left   = (document.body.scrollLeft + metadata.left - strokeWidth) + 'px';
+    outline.style.width  = (metadata.width + 2 * strokeWidth) + 'px';
+    outline.style.height = (metadata.height + 2 * strokeWidth) + 'px';
+
+    outline.innerHTML = html;
   }
+}
 
+function unHighlight() {
+  overlay.parentNode.removeChild(overlay);
+  styleNode.parentNode.removeChild(styleNode);
 
-  // event handler
-  // -------------
+  outline.innerHTML    = '';
+  outline.style.top    = '0px';
+  outline.style.left   = '0px';
+  outline.style.width  = '0px';
+  outline.style.height = '0px';
 
-  function highlight(e) {
+  var body = document.body;
 
-    if (element !== e.target) {
+  body.removeEventListener('mousemove', highlight, false);
+  body.removeEventListener('mousedown', capture, false);
+  body.removeEventListener('keydown', shortcut, false);
+}
 
-      element  = e.target;
-      metadata = getBounds(element);
-
-      var pathData = 'M' + strokeWidth / 2 + ' ' + strokeWidth / 2
-        + 'H' + (metadata.width + strokeWidth)
-        + 'V' + (metadata.height + strokeWidth)
-        + 'H' + strokeWidth / 2
-        + 'V' + strokeWidth / 2;
-
-      var html = '' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewport="0 0 {width} {height}" style="border: 0;">' +
-        '  <path fill="rgba(48,132,242,.2)" ' +
-        '        stroke="rgb(217,35,68)" ' +
-        '        stroke-width="{strokeWidth}" ' +
-        '        stroke-dasharray="7" ' +
-        '        style="animation: ant-line 1500s infinite linear; animation-delay: .3s; "' +
-        '        d="{d}"></path>' +
-        '</svg>';
-
-      html = html
-        .replace('{d}', pathData)
-        .replace(/\{width\}/g, metadata.width + 2 * strokeWidth)
-        .replace(/\{height\}/g, metadata.height + 2 * strokeWidth)
-        .replace('{strokeWidth}', '' + strokeWidth);
-
-      outline.style.top    = (document.body.scrollTop + metadata.top - strokeWidth) + 'px';
-      outline.style.left   = (document.body.scrollLeft + metadata.left - strokeWidth) + 'px';
-      outline.style.width  = (metadata.width + 2 * strokeWidth) + 'px';
-      outline.style.height = (metadata.height + 2 * strokeWidth) + 'px';
-
-      outline.innerHTML = html;
-    }
+function shortcut(e) {
+  if (e.keyCode === 13) {
+    // enter
+    capture();
+  } else if (e.keyCode === 27) {
+    // esc
+    unHighlight();
   }
+}
 
-  function shortcut(e) {
-    if (e.keyCode === 13) {
-      // enter
-      capture();
-    } else if (e.keyCode === 27) {
-      // esc
-      clean();
-    }
-  }
+function capture() {
 
-  function capture() {
-    clean();
-    dispatch();
-  }
+  unHighlight();
 
-  function dispatch() {
-    var parent = getScrollParent(element);
+  var parent = getScrollParent(element);
 
-    if (needScroll(parent, isBody)) {
-      isBody(parent)
-        ? scrollBody(parent)
-        : scrollElement(parent)
-    } else {
-      captureNormal();
-    }
-  }
+  isOverflow(parent)
+    ? overflowCapture(parent)
+    : normalCapture();
+}
 
-  function needScroll(parent) {
+function overflowCapture(parent) {
+  // save parent's status
+  var overflow = parent.style.overflow;
+  var originX  = parent.scrollLeft;
+  var originY  = parent.scrollTop;
 
-    // parent is body
-    if (isBody(parent)) {
-      if (metadata.left < 0 || metadata.top < 0) {
-        return true;
-      }
+  var eBound;
 
-      var docEle  = element.ownerDocument.documentElement;
-      var vWidth  = docEle.clientWidth;
-      var vHeight = docEle.clientHeight;
+  // disable all scrollBars, restore it when captured
+  parent.style.overflow = 'hidden';
 
-      if (element === element.ownerDocument.body) {
-        return element.scrollWidth > vWidth || element.scrollHeight > vHeight;
-      }
-
-      return metadata.left + metadata.width > vWidth || metadata.top + metadata.height > vHeight;
-    }
-
-    if (metadata.width > parent.clientWidth
-      || metadata.height > parent.clientHeight) {
-      return true;
-    }
-  }
-
-  function scrollBody(parent) {
-    var docEle = element.ownerDocument.documentElement;
-
-    // save parent's status
-    var overflow = parent.style.overflow;
-    var originX  = parent.scrollLeft;
-    var originY  = parent.scrollTop;
-    var eBound   = getBounds(element);
-
-    // disable all scrollBars, restore it when captured
-    parent.style.overflow = 'hidden';
-    // try to scroll element to top-left corner of the viewport
-    parent.scrollLeft = parent.scrollLeft + eBound.left;
-    parent.scrollTop  = parent.scrollTop + eBound.top;
-
-    var startX = parent.scrollLeft;
-    var startY = parent.scrollTop;
+  // try to scroll element to top-left corner of the viewport
+  if (isBody(parent)) {
 
     eBound = getBounds(element);
 
-    // the screen capture size
-    var fullWidth  = element.scrollWidth || element.offsetWidth || element.clientWidth;
-    var fullHeight = element.scrollHeight || element.offsetHeight || element.clientHeight;
+    parent.scrollLeft += eBound.left;
+    parent.scrollTop += eBound.top;
+  } else {
 
-    // viewport size
-    var xDelta = docEle.clientWidth;
-    var yDelta = docEle.clientHeight;
+    var offset = getRelativePosition(element, parent);
 
-    // collect the capture blocks
-    var xPos = 0;
-    var yPos = 0;
-
-    var blocks = [];
-
-    while (yPos < fullHeight) {
-      xPos = 0;
-      while (xPos < fullWidth) {
-
-        var block = {
-          dx: xPos,
-          dy: yPos,
-          width: Math.min(xDelta, fullWidth - xPos),
-          height: Math.min(yDelta, fullHeight - yPos)
-        };
-
-        block.sx = fullWidth > xDelta && xPos + xDelta > fullWidth
-          ? eBound.left + xPos + xDelta - fullWidth
-          : eBound.left;
-
-        block.sy = fullHeight > yDelta && yPos + yDelta > fullHeight
-          ? eBound.top + yPos + yDelta - fullHeight
-          : eBound.top;
-
-        blocks.push(block);
-
-        xPos += xDelta;
-      }
-      yPos += yDelta;
-    }
-
-    function reset() {
-      parent.style.overflow = overflow;
-      parent.scrollLeft     = originX;
-      parent.scrollTop      = originY;
-    }
-
-    (function process() {
-      if (!blocks.length) {
-        reset();
-        callback && callback();
-        return;
-      }
-
-      var next = blocks.shift();
-
-      parent.scrollLeft = next.dx + startX;
-      parent.scrollTop  = next.dy + startY;
-
-      next.action      = 'capture';
-      next.ratio       = window.devicePixelRatio;
-      next.totalWidth  = fullWidth;
-      next.totalHeight = fullHeight;
-
-      // need to wait for things to settle
-      window.setTimeout(function () {
-        // in case the below callback never returns, cleanup
-        var timer = window.setTimeout(reset, 1250);
-
-        chrome.runtime.sendMessage(next, function (captured) {
-
-          window.clearTimeout(timer);
-
-          if (captured) {
-            process();
-          } else {
-            reset();
-          }
-        });
-      }, delay);
-
-    })();
+    parent.scrollLeft = offset.left;
+    parent.scrollTop  = offset.top;
   }
 
-  function scrollElement(parent) {
+  eBound = getBounds(element);
 
-    var pBound = getBounds(parent);
+  var startX = parent.scrollLeft;
+  var startY = parent.scrollTop;
 
-    var fullWidth  = element.offsetWidth;
-    var fullHeight = element.offsetHeight;
 
-    var xDelta = parent.clientWidth + pBound.left - metadata.left;
-    var yDelta = parent.clientHeight + pBound.top - metadata.top;
+  // the screen capture size
+  var fullWidth;
+  var fullHeight;
 
-    // collect the capture blocks
-    var xPos = 0;
-    var yPos = fullHeight - yDelta;
+  if (isBody(element)) {
+    var docSize = getDocumentSize(element.ownerDocument);
+    fullWidth   = docSize.width;
+    fullHeight  = docSize.height;
+  } else {
+    fullWidth  = max([element.offsetWidth, element.clientWidth]);
+    fullHeight = max([element.offsetHeight, element.clientHeight]);
+  }
 
-    var blocks = [];
+  // viewport size
+  var vSize  = getViewportSize(parent);
+  var xDelta = vSize.width;
+  var yDelta = vSize.height;
 
-    while (yPos + yDelta > 0) {
-      xPos = 0;
-      while (xPos < fullWidth) {
-        blocks.push([xPos, yPos]);
-        xPos += xDelta;
-      }
-      yPos -= yDelta;
-    }
+  // collect the capture blocks
+  var xPos = 0;
+  var yPos = 0;
 
-    // save parent's status
-    var overflow  = parent.style.overflow;
-    var originalX = parent.scrollLeft;
-    var originalY = parent.scrollTop;
+  var blocks = [];
 
-    // disable all scrollBars, restore it when captured.
-    parent.style.overflow = 'hidden';
+  while (yPos < fullHeight) {
+    xPos = 0;
+    while (xPos < fullWidth) {
 
-    function reset() {
-      parent.style.overflow = overflow;
-      parent.scrollLeft     = originalX;
-      parent.scrollTop      = originalY;
-    }
-
-    (function process() {
-      if (!blocks.length) {
-        reset();
-        callback && callback();
-        return;
-      }
-
-      var next = blocks.shift();
-
-      parent.scrollLeft = next[0];
-      parent.scrollTop  = next[1];
-
-      var data = {
-        action: 'capture',
-        sx: metadata.left,
-        sy: metadata.top,
-        dx: parent.scrollLeft,
-        dy: parent.scrollTop,
-        width: metadata.width,
-        height: metadata.height,
-        totalWidth: fullWidth,
-        totalHeight: fullHeight,
-        ratio: window.devicePixelRatio
+      var block = {
+        dx: xPos,
+        dy: yPos,
+        width: Math.min(xDelta, fullWidth - xPos),
+        height: Math.min(yDelta, fullHeight - yPos)
       };
 
-      // need to wait for things to settle
-      window.setTimeout(function () {
-        // in case the below callback never returns, cleanup
-        var timer = window.setTimeout(reset, 1250);
+      block.sx = fullWidth > xDelta && xPos + xDelta > fullWidth
+        ? eBound.left + xPos + xDelta - fullWidth
+        : eBound.left;
 
-        chrome.runtime.sendMessage(data, function (captured) {
+      block.sy = fullHeight > yDelta && yPos + yDelta > fullHeight
+        ? eBound.top + yPos + yDelta - fullHeight
+        : eBound.top;
 
-          window.clearTimeout(timer);
+      blocks.push(block);
 
-          if (captured) {
-            process();
-          } else {
-            reset();
-          }
-        });
-      }, delay);
-
-    })();
+      xPos += xDelta;
+    }
+    yPos += yDelta;
   }
 
-  function captureNormal() {
-    chrome.runtime.sendMessage({
-      action: 'capture',
-      sx: metadata.left,
-      sy: metadata.top,
-      dx: 0,
-      dy: 0,
-      width: metadata.width,
-      height: metadata.height,
-      totalWidth: metadata.width,
-      totalHeight: metadata.height,
-      ratio: window.devicePixelRatio
-    }, function (captured) {
-      if (captured) {
-        callback && callback();
-      }
-    });
+  function reset() {
+    parent.style.overflow = overflow;
+    parent.scrollLeft     = originX;
+    parent.scrollTop      = originY;
   }
+
+  (function process() {
+    if (!blocks.length) {
+      reset();
+      onFinish && onFinish();
+      return;
+    }
+
+    var next = blocks.shift();
+
+    parent.scrollLeft = next.dx + startX;
+    parent.scrollTop  = next.dy + startY;
+
+
+    next.action      = 'capture';
+    next.ratio       = window.devicePixelRatio;
+    next.totalWidth  = fullWidth;
+    next.totalHeight = fullHeight;
+
+    // need to wait for things to settle
+    window.setTimeout(function () {
+      // in case the below callback never returns, cleanup
+      var timer = window.setTimeout(reset, 1250);
+
+      chrome.runtime.sendMessage(next, function (captured) {
+
+        window.clearTimeout(timer);
+
+        if (captured) {
+          process();
+        } else {
+          reset();
+        }
+      });
+    }, delay);
+
+  })();
+}
+
+function normalCapture() {
+  chrome.runtime.sendMessage({
+    action: 'capture',
+    sx: metadata.left,
+    sy: metadata.top,
+    dx: 0,
+    dy: 0,
+    width: metadata.width,
+    height: metadata.height,
+    totalWidth: metadata.width,
+    totalHeight: metadata.height,
+    ratio: window.devicePixelRatio
+  }, function (captured) {
+    captured && onFinish && onFinish();
+  });
 }
 
 
 // helpers
 // -------
+
+function isOverflow(parent) {
+
+  // parent is body
+  if (isBody(parent)) {
+
+    if (metadata.left < 0 || metadata.top < 0) {
+      return true;
+    }
+
+    var vSize = getViewportSize(parent);
+
+    if (element === element.ownerDocument.body) {
+      return element.scrollWidth > vSize.width
+        || element.scrollHeight > vSize.height;
+    }
+
+    return metadata.left + metadata.width > vSize.width
+      || metadata.top + metadata.height > vSize.height;
+  }
+
+  if (metadata.width > parent.clientWidth
+    || metadata.height > parent.clientHeight) {
+    return true;
+  }
+}
 
 function isBody(ele) {
   return ele === element.ownerDocument.body;
@@ -400,9 +337,9 @@ function max(numbers) {
   return Math.max.apply(Math, numbers.filter(function (x) { return x; }));
 }
 
-function getDocumentSize() {
-  var body   = document.body;
-  var docEle = document.documentElement;
+function getDocumentSize(doc) {
+  var body   = doc.body;
+  var docEle = doc.documentElement;
 
   return {
     width: max([
@@ -420,6 +357,45 @@ function getDocumentSize() {
       docEle.offsetHeight
     ])
   }
+}
+
+function getViewportSize(ele) {
+
+  ele = isBody(ele) ? ele.ownerDocument.documentElement : ele;
+
+  return {
+    width: ele.clientWidth,
+    height: ele.clientHeight
+  }
+}
+
+function getRelativePosition(ele, container) {
+  var left = 0;
+  var top  = 0;
+
+  var computedStyle    = getComputedStyle(container);
+  var computedPosition = computedStyle.getPropertyValue('position');
+  var inlinePosition   = '';
+
+  if (computedPosition === 'static') {
+    inlinePosition = container.style.position;
+
+    container.style.position = 'relative';
+  }
+
+  while (ele && ele !== container) {
+    left += ele.offsetLeft;
+    top += ele.offsetTop;
+
+    ele = ele.offsetParent;
+  }
+
+  container.style.position = inlinePosition;
+
+  return {
+    left: left,
+    top: top
+  };
 }
 
 function getBounds(ele) {
