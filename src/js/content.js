@@ -1,20 +1,5 @@
 'use strict';
 
-// received message from background
-chrome.runtime.onMessage.addListener(function (message, sender, callback) {
-
-  if (!sender || sender.id !== chrome.runtime.id) {
-    return;
-  }
-
-  if (message.action === 'start') {
-    start(callback);
-  }
-
-  return true;
-});
-
-
 var strokeWidth = 2;
 var styleNode;
 var overlay;
@@ -23,10 +8,12 @@ var outline;
 var delay = 150;
 
 var element;
-var metadata = {};
-
+var metadata;
 
 function start(callback) {
+
+  element  = null;
+  metadata = null;
 
   if (!styleNode) {
     styleNode = document.createElement('style');
@@ -67,14 +54,19 @@ function start(callback) {
     overlay.appendChild(outline);
   }
 
-  overlay.style.width  = document.body.scrollWidth + 'px';
-  overlay.style.height = document.body.scrollHeight + 'px';
+  var docSize = getDocumentSize();
+
+  overlay.style.width  = docSize.width + 'px';
+  overlay.style.height = docSize.height + 'px';
 
   if (!overlay.parentNode) {
-    document.body.appendChild(overlay);
-    document.body.addEventListener('mousemove', mousemove, false);
-    document.body.addEventListener('mousedown', mousedown, false);
-    document.body.addEventListener('keydown', keydown, false);
+
+    var body = document.body;
+
+    body.appendChild(overlay);
+    body.addEventListener('mousemove', highlight, false);
+    body.addEventListener('mousedown', capture, false);
+    body.addEventListener('keydown', shortcut, false);
   }
 
   function clean() {
@@ -88,15 +80,19 @@ function start(callback) {
     outline.style.width  = '0px';
     outline.style.height = '0px';
 
-    document.body.removeEventListener('mousemove', mousemove, false);
-    document.body.removeEventListener('mousedown', mousedown, false);
-    document.body.removeEventListener('keydown', keydown, false);
+    var body = document.body;
+
+    body.removeEventListener('mousemove', highlight, false);
+    body.removeEventListener('mousedown', capture, false);
+    body.removeEventListener('keydown', shortcut, false);
   }
+
 
   // event handler
   // -------------
 
-  function mousemove(e) {
+  function highlight(e) {
+
     if (element !== e.target) {
 
       element  = e.target;
@@ -122,7 +118,7 @@ function start(callback) {
         .replace('{d}', pathData)
         .replace(/\{width\}/g, metadata.width + 2 * strokeWidth)
         .replace(/\{height\}/g, metadata.height + 2 * strokeWidth)
-        .replace('{strokeWidth}', strokeWidth);
+        .replace('{strokeWidth}', '' + strokeWidth);
 
       outline.style.top    = (document.body.scrollTop + metadata.top - strokeWidth) + 'px';
       outline.style.left   = (document.body.scrollLeft + metadata.left - strokeWidth) + 'px';
@@ -133,15 +129,10 @@ function start(callback) {
     }
   }
 
-  function mousedown() {
-    clean();
-    setTimeout(capture, delay);
-  }
-
-  function keydown(e) {
+  function shortcut(e) {
     if (e.keyCode === 13) {
       // enter
-      mousedown();
+      capture();
     } else if (e.keyCode === 27) {
       // esc
       clean();
@@ -149,37 +140,26 @@ function start(callback) {
   }
 
   function capture() {
-    var parent = getScrollParent(element);
-    var isBody = parent === element.ownerDocument.body;
-
-    if (needScroll(parent, isBody)) {
-      return isBody
-        ? scrollBody(parent)
-        : scrollElement(parent)
-    }
-
-    chrome.runtime.sendMessage({
-      action: 'capture',
-      sx: metadata.left,
-      sy: metadata.top,
-      dx: 0,
-      dy: 0,
-      width: metadata.width,
-      height: metadata.height,
-      totalWidth: metadata.width,
-      totalHeight: metadata.height,
-      ratio: window.devicePixelRatio
-    }, function (captured) {
-      if (captured) {
-        callback && callback();
-      }
-    });
+    clean();
+    dispatch();
   }
 
-  function needScroll(parent, isBody) {
+  function dispatch() {
+    var parent = getScrollParent(element);
+
+    if (needScroll(parent, isBody)) {
+      isBody(parent)
+        ? scrollBody(parent)
+        : scrollElement(parent)
+    } else {
+      captureNormal();
+    }
+  }
+
+  function needScroll(parent) {
 
     // parent is body
-    if (isBody) {
+    if (isBody(parent)) {
       if (metadata.left < 0 || metadata.top < 0) {
         return true;
       }
@@ -222,8 +202,8 @@ function start(callback) {
     eBound = getBounds(element);
 
     // the screen capture size
-    var fullWidth  = element.scrollWidth || element.offsetWidth;
-    var fullHeight = element.scrollHeight || element.offsetHeight;
+    var fullWidth  = element.scrollWidth || element.offsetWidth || element.clientWidth;
+    var fullHeight = element.scrollHeight || element.offsetHeight || element.clientHeight;
 
     // viewport size
     var xDelta = docEle.clientWidth;
@@ -387,11 +367,60 @@ function start(callback) {
 
     })();
   }
+
+  function captureNormal() {
+    chrome.runtime.sendMessage({
+      action: 'capture',
+      sx: metadata.left,
+      sy: metadata.top,
+      dx: 0,
+      dy: 0,
+      width: metadata.width,
+      height: metadata.height,
+      totalWidth: metadata.width,
+      totalHeight: metadata.height,
+      ratio: window.devicePixelRatio
+    }, function (captured) {
+      if (captured) {
+        callback && callback();
+      }
+    });
+  }
 }
 
 
 // helpers
 // -------
+
+function isBody(ele) {
+  return ele === element.ownerDocument.body;
+}
+
+function max(numbers) {
+  return Math.max.apply(Math, numbers.filter(function (x) { return x; }));
+}
+
+function getDocumentSize() {
+  var body   = document.body;
+  var docEle = document.documentElement;
+
+  return {
+    width: max([
+      body.scrollWidth,
+      body.offsetWidth,
+      docEle.clientWidth,
+      docEle.scrollWidth,
+      docEle.offsetWidth
+    ]),
+    height: max([
+      body.scrollHeight,
+      body.offsetHeight,
+      docEle.clientHeight,
+      docEle.scrollHeight,
+      docEle.offsetHeight
+    ])
+  }
+}
 
 function getBounds(ele) {
 
@@ -404,7 +433,7 @@ function getBounds(ele) {
     doc = ele.ownerDocument;
   }
 
-  var docEl = doc.documentElement;
+  var docEle = doc.documentElement;
 
   var box = {};
   // The original object returned by getBoundingClientRect is immutable,
@@ -426,8 +455,8 @@ function getBounds(ele) {
     box.height = document.body.scrollHeight - box.top - box.bottom;
   }
 
-  box.top    = box.top - docEl.clientTop;
-  box.left   = box.left - docEl.clientLeft;
+  box.top    = box.top - docEle.clientTop;
+  box.left   = box.left - docEle.clientLeft;
   box.right  = doc.body.clientWidth - box.width - box.left;
   box.bottom = doc.body.clientHeight - box.height - box.top;
 
@@ -435,6 +464,7 @@ function getBounds(ele) {
 }
 
 function getScrollParent(ele) {
+
   // In firefox if the el is inside an iframe with display: none;
   // window.getComputedStyle() will return null;
   // https://bugzilla.mozilla.org/show_bug.cgi?id=548397
@@ -471,6 +501,24 @@ function getScrollParent(ele) {
 
   return document.body;
 }
+
+
+// message
+// -------
+
+// received message from background
+chrome.runtime.onMessage.addListener(function (message, sender, callback) {
+
+  if (!sender || sender.id !== chrome.runtime.id) {
+    return;
+  }
+
+  if (message.action === 'start') {
+    start(callback);
+  }
+
+  return true;
+});
 
 // page prepared, then enable this capture button
 chrome.runtime.sendMessage({ action: 'enable' });
