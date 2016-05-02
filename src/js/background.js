@@ -118,31 +118,11 @@ function copy(dataUrl) {
 }
 
 
-chrome.runtime.onMessage.addListener(function (message, sender, callback) {
-
-  if (!sender || sender.id !== chrome.runtime.id || !sender.tab) {
-    return;
-  }
-
-  var action = message && message.action;
-
-  if (action === 'enable') {
-    chrome.pageAction.show(sender.tab.id);
-  } else if (action === 'capture') {
-    capturePage(message, sender, callback);
-
-    // This callback function becomes invalid when the event listener returns,
-    // unless you return true from the event listener to indicate you wish to
-    // send a response asynchronously (this will keep the message channel open
-    // to the other end until sendResponse is called).
-    return true;
-  }
-});
-
 var screenshot;
 var contentURL = '';
 
 function capturePage(data, sender, callback) {
+
   console.log('capture');
   console.log(data);
 
@@ -171,7 +151,10 @@ function capturePage(data, sender, callback) {
 
 
   chrome.tabs.get(sender.tab.id, function (tab) {
-    chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' }, function (dataUrl) {
+    chrome.tabs.captureVisibleTab(tab.windowId, {
+      format: 'png'
+    }, function (dataUrl) {
+
       if (dataUrl) {
 
         var image = new Image();
@@ -183,16 +166,17 @@ function capturePage(data, sender, callback) {
             data.dx, data.dy,
             data.width, data.height
           );
-          callback({});
+          callback(true);
         };
 
         image.src = dataUrl;
       }
+
     });
   });
 }
 
-// send message to tabs
+
 chrome.pageAction.onClicked.addListener(function onClicked(tab) {
 
   screenshot = {};
@@ -262,4 +246,25 @@ chrome.pageAction.onClicked.addListener(function onClicked(tab) {
     //  }, errorHandler);
     //}, errorHandler);
   });
+});
+
+chrome.runtime.onMessage.addListener(function (message, sender, callback) {
+
+  if (!sender || sender.id !== chrome.runtime.id || !sender.tab) {
+    return;
+  }
+
+  var action = message && message.action;
+
+  if (action === 'enable') {
+    chrome.pageAction.show(sender.tab.id);
+  } else if (action === 'capture') {
+    capturePage(message, sender, callback);
+
+    // This callback function becomes invalid when the event listener returns,
+    // unless you return true from the event listener to indicate you wish to
+    // send a response asynchronously (this will keep the message channel open
+    // to the other end until sendResponse is called).
+    return true;
+  }
 });

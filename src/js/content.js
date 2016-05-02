@@ -74,6 +74,7 @@ function start(callback) {
   onFinish = function () {
     callback && callback();
 
+    resetViewports();
     element  = null;
     metadata = null;
     onFinish = null;
@@ -148,12 +149,15 @@ function shortcut(e) {
 function capture() {
 
   unHighlight();
+  adjustViewports();
 
-  var parent = getScrollParent(element);
+  setTimeout(function () {
+    var parent = getScrollParent(element);
 
-  isOverflow(parent)
-    ? overflowCapture(parent)
-    : normalCapture();
+    isOverflow(parent)
+      ? overflowCapture(parent)
+      : normalCapture();
+  }, delay);
 }
 
 function overflowCapture(parent) {
@@ -280,8 +284,6 @@ function overflowCapture(parent) {
 
 function normalCapture() {
 
-  // check if the parent is out of the viewport
-
   chrome.runtime.sendMessage({
     action: 'capture',
     sx: metadata.left,
@@ -298,14 +300,70 @@ function normalCapture() {
   });
 }
 
-var savedState;
+var savedStates;
 
-function adjustViewport(parent) {
-  savedState = [];
+function adjustViewports() {
+
+  savedStates = [];
+
+  var parent = getScrollParent(element);
+  var vSize  = getViewportSize(element.ownerDocument.body);
 
   while (!isBody(parent)) {
 
+    var top   = 0;
+    var left  = 0;
+    var bound = getBounds(parent);
+
+    if (metadata.top < 0) {
+      top = bound.top >= 0 ? metadata.top : Math.max(metadata.top, bound.top);
+    } else if (metadata.top + metadata.height > vSize.height) {
+      top = metadata.top + metadata.height - vSize.height;
+      if (bound.top >= 0) {
+        top = Math.min(top, bound.top);
+      }
+    }
+
+    if (metadata.left < 0) {
+      left = bound.left >= 0 ? metadata.left : Math.max(metadata.left, bound.left);
+    } else if (metadata.left + metadata.width > vSize.width) {
+      left = metadata.left + metadata.width - vSize.width;
+      if (bound.left >= 0) {
+        left = Math.min(left, bound.left);
+      }
+    }
+
+    if (top !== 0 || left !== 0) {
+      var container = getScrollParent(parent);
+
+      savedStates.push({
+        element: container,
+        scrollTop: container.scrollTop,
+        scrollLeft: container.scrollLeft
+      });
+
+      container.scrollTop += top;
+      container.scrollLeft += left;
+
+      metadata = getBounds(element);
+
+      parent = container;
+
+    } else {
+
+      break;
+    }
   }
+}
+
+function resetViewports() {
+  savedStates && savedStates.forEach(function (state) {
+    var elem = state.element;
+
+    elem.scrollTop  = state.scrollTop;
+    elem.scrollLeft = state.scrollLeft;
+  });
+  savedStates = null;
 }
 
 
@@ -332,8 +390,15 @@ function isOverflow(parent) {
       || metadata.top + metadata.height > vSize.height;
   }
 
-  return metadata.width > parent.clientWidth
-    || metadata.height > parent.clientHeight;
+  if (metadata.width > parent.clientWidth
+    || metadata.height > parent.clientHeight) {
+    return true;
+  }
+
+  var offset = getRelativePosition(element, parent);
+
+  return metadata.width + offset.left > parent.clientWidth
+    || metadata.height + offset.top > parent.clientHeight;
 }
 
 function isBody(ele) {
