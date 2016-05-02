@@ -215,23 +215,12 @@ function overflowCapture(parent) {
   while (yPos < fullHeight) {
     xPos = 0;
     while (xPos < fullWidth) {
-
-      var block = {
+      blocks.push({
         dx: xPos,
         dy: yPos,
         width: Math.min(xDelta, fullWidth - xPos),
         height: Math.min(yDelta, fullHeight - yPos)
-      };
-
-      block.sx = fullWidth > xDelta && xPos + xDelta > fullWidth
-        ? eBound.left + xPos + xDelta - fullWidth
-        : eBound.left;
-
-      block.sy = fullHeight > yDelta && yPos + yDelta > fullHeight
-        ? eBound.top + yPos + yDelta - fullHeight
-        : eBound.top;
-
-      blocks.push(block);
+      });
 
       xPos += xDelta;
     }
@@ -256,6 +245,13 @@ function overflowCapture(parent) {
     parent.scrollLeft = next.dx + startX;
     parent.scrollTop  = next.dy + startY;
 
+    next.sx = parent.scrollLeft < next.dx + startX
+      ? eBound.left + next.dx + startX - parent.scrollLeft
+      : eBound.left;
+
+    next.sy = parent.scrollTop < next.dy + startY
+      ? eBound.top + next.dy + startY - parent.scrollTop
+      : eBound.top;
 
     next.action      = 'capture';
     next.ratio       = window.devicePixelRatio;
@@ -283,6 +279,9 @@ function overflowCapture(parent) {
 }
 
 function normalCapture() {
+
+  // check if the parent is out of the viewport
+
   chrome.runtime.sendMessage({
     action: 'capture',
     sx: metadata.left,
@@ -297,6 +296,16 @@ function normalCapture() {
   }, function (captured) {
     captured && onFinish && onFinish();
   });
+}
+
+var savedState;
+
+function adjustViewport(parent) {
+  savedState = [];
+
+  while (!isBody(parent)) {
+
+  }
 }
 
 
@@ -323,10 +332,8 @@ function isOverflow(parent) {
       || metadata.top + metadata.height > vSize.height;
   }
 
-  if (metadata.width > parent.clientWidth
-    || metadata.height > parent.clientHeight) {
-    return true;
-  }
+  return metadata.width > parent.clientWidth
+    || metadata.height > parent.clientHeight;
 }
 
 function isBody(ele) {
