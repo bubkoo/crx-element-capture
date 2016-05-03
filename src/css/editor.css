@@ -1,0 +1,18 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
+
+  height: 100px;
+
+  background: #EAEAEA;
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #FFF), color-stop(100%, #EAEAEA));
+  background: -webkit-linear-gradient(top, #FFF 0%, #EAEAEA 100%);
+  background: linear-gradient(to bottom, #FFF 0%, #EAEAEA 100%);
+  border-bottom: 1px #ADADAD solid;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.4);
+  padding: 10px 20px;
+}

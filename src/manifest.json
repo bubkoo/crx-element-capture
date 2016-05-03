@@ -17,6 +17,7 @@
     },
     "default_title": "Click me and select element to capture"
   },
+  "offline_enabled":true,
   "permissions": [
     "clipboardWrite",
     "activeTab",
@@ -38,7 +39,6 @@
       "js": [
         "js/content.js"
       ],
-      "run_at": "document_end",
       "all_frames": false
     }
   ]
