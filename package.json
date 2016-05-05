@@ -30,5 +30,12 @@
   "bugs": {
     "url": "https://github.com/bubkoo/crx-element-capture/issues"
   },
-  "homepage": "https://github.com/bubkoo/crx-element-capture#readme"
+  "homepage": "https://github.com/bubkoo/crx-element-capture#readme",
+  "dependencies": {
+    "jquery": "^2.2.3",
+    "normalize.css": "^4.1.1"
+  },
+  "devDependencies": {
+    "jshint": "^2.9.2"
+  }
 }
