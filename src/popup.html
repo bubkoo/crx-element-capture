@@ -3,14 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>Popup</title>
+    <link type="text/css" rel="stylesheet" href="css/normalize.css">
     <link type="text/css" rel="stylesheet" href="css/popup.css">
 </head>
 <body>
+<header>
+    Any Capture
+</header>
+<section>
+    <ul class="capture-menu">
+        <li id="captureElement">
+            <span class="icon"></span>
+            <span class="label">截取选择元素</span>
+        </li>
+        <li id="captureRegion">
+            <span class="icon"></span>
+            <span class="label">截取选择区域</span>
+        </li>
+        <li id="captureEntire">
+            <span class="icon"></span>
+            <span class="label">截取整个页面</span>
+        </li>
+        <li id="captureVisible">
+            <span class="icon"></span>
+            <span class="label">截取可见部分</span>
+        </li>
+        <li id="captureWindow">
+            <span class="icon"></span>
+            <span class="label">截取桌面窗口</span>
+        </li>
+    </ul>
+</section>
+<footer>
 
-<header></header>
-<section></section>
-<footer></footer>
-
+</footer>
 <script src="js/lib/jquery-2.2.3.min.js"></script>
 <script src="js/popup.js"></script>
 <script src="js/cga.js"></script>

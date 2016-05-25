@@ -26,9 +26,37 @@
             overflow: auto;
             padding: 0
         }
+
+        .resizer {
+            position: absolute;
+            top: 30px;
+            left: 500px;
+            width: 24px;
+            height: 24px;
+            border-radius: 20px;
+            border: 4px solid rgba(48, 132, 242, 0.2);
+            box-sizing: border-box;
+        }
+
+        .reszier-inner {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 16px;
+            background-color: rgba(48, 132, 242, 0.6);
+            box-shadow: 0 0 10px 0px rgba(48, 132, 242, 0.6);
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
+
+<div class="resizer">
+    <span class="reszier-inner"></span>
+</div>
+
 <div style="margin: 50px 0 0 50px; border: 5px solid #E80C7A; width: 300px; height: 300px; background-color: #7279AD;">
     <p>
         Element without scroll-bars.

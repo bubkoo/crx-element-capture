@@ -4,6 +4,7 @@
   "description": "Chrome extension for screen capture any HTML element on a webpage.",
   "main": "index.js",
   "scripts": {
+    "less": "",
     "lint": "jshint src/**/*.js",
     "pretest": "npm run lint",
     "test": "echo "

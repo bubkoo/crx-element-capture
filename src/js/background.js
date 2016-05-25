@@ -1,226 +1,222 @@
 'use strict';
 
-function captureOld(tabId, metadata) {
+var screenShot;
 
-  chrome.tabs.get(tabId, function (tab) {
+(function () {
 
-    chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' }, function (dataUrl) {
+  var fragments;
 
-      if (!canvas) {
-        canvas = document.createElement('canvas');
-        document.body.appendChild(canvas);
+  screenShot = {
+
+    initContextMenu: function () {},
+
+    queryActiveTab: function (callback) {
+      if (callback) {
+        chrome.tabs.query({
+          active: true,
+          lastFocusedWindow: true
+        }, function (tabs) {
+          callback(tabs[0]);
+        });
+      }
+    },
+
+    // capture the selected element
+    captureElement: function (message, sender) {
+      screenShot.queryActiveTab(function (tab) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'captureElement'
+        }, function () {
+
+          if (screenShot.canvas) {
+            var croppedDataUrl = screenShot.canvas.toDataURL('image/png');
+            chrome.tabs.create({
+              url: croppedDataUrl,
+              windowId: sender.tab.windowId
+            });
+          }
+        });
+      });
+
+      return true;
+    },
+
+    // capture the selected region
+    captureRegion: function () {
+      screenShot.queryActiveTab(function (tab) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'captureRegion'
+        });
+      });
+    },
+
+    // capture entire page
+    captureEntire: function () {
+      screenShot.queryActiveTab(function (tab) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'captureEntire'
+        });
+      });
+    },
+
+    // capture the visible part of page
+    captureVisible: function () {},
+
+    // capture desktop window
+    captureWindow: function () {},
+
+    capture: function (data, sender, callback) {
+
+      console.log('capture');
+      console.log(data);
+
+      var scale = data.ratio && data.ratio !== 1 ? 1 / data.ratio : 1;
+
+      if (scale !== 1) {
+        data.sx          = data.sx / scale;
+        data.sy          = data.sy / scale;
+        data.dx          = data.dx / scale;
+        data.dy          = data.dy / scale;
+        data.width       = data.width / scale;
+        data.height      = data.height / scale;
+        data.totalWidth  = data.totalWidth / scale;
+        data.totalHeight = data.totalHeight / scale;
       }
 
-      var image = new Image();
+      if (!screenShot.canvas) {
+        var canvas = document.createElement('canvas');
 
-      image.onload = function () {
-        canvas.width  = metadata.width;
-        canvas.height = metadata.height;
+        canvas.width  = data.totalWidth;
+        canvas.height = data.totalHeight;
 
+        screenShot.canvas = canvas;
+        screenShot.ctx    = canvas.getContext('2d');
+      }
+
+      chrome.tabs.get(sender.tab.id, function (tab) {
+        chrome.tabs.captureVisibleTab(tab.windowId, {
+          format: 'png'
+        }, function (dataUrl) {
+
+          if (dataUrl) {
+
+            var img = new Image();
+
+            img.onload = function () {
+              screenShot.ctx.drawImage(img,
+                data.sx, data.sy,
+                data.width, data.height,
+                data.dx, data.dy,
+                data.width, data.height
+              );
+              callback(true);
+            };
+
+            img.src = dataUrl;
+          }
+
+        });
+      });
+
+      // for async callback
+      return true;
+    },
+
+    onFragment: function (data, sender) {
+
+      chrome.tabs.captureVisibleTab(sender.tab.windowId, {
+        format: 'png'
+      }, function (dataURI) {
+
+        var fragment = data.fragment;
+
+        fragment.dataURI = dataURI;
+
+        if (!fragments) {
+          fragments = [];
+        }
+
+        fragments.push(fragment);
+
+        chrome.tabs.sendMessage(sender.tab.id, { action: 'nextFragment' });
+      });
+    },
+
+    onCaptureEnd: function (message, sender) {
+
+      if (fragments && fragments.length) {
+
+        var fragment    = fragments[0];
+        var totalWidth  = fragment.totalWidth;
+        var totalHeight = fragment.totalHeight;
+
+        if (fragment.ratio !== 1) {
+          totalWidth *= fragment.ratio;
+          totalHeight *= fragment.ratio;
+        }
+
+        var canvas  = document.createElement('canvas');
         var context = canvas.getContext('2d');
 
-        context.drawImage(image,
-          metadata.left, metadata.top,
-          metadata.width, metadata.height,
-          0, 0,
-          metadata.width, metadata.height
-        );
+        canvas.width  = Math.round(totalWidth);
+        canvas.height = Math.round(totalHeight);
 
-        var croppedDataUrl = canvas.toDataURL('image/png');
+        var totalCount  = fragments.length;
+        var loadedCount = 0;
 
-        download(croppedDataUrl, metadata.name);
-        // copy to clipboard
-        copy(croppedDataUrl);
+        fragments.forEach(function (data) {
 
-        //chrome.tabs.create({
-        //  url: croppedDataUrl,
-        //  windowId: tab.windowId
-        //});
-      };
+          var image  = new Image();
+          var ratio  = data.ratio;
+          var sx     = Math.round(data.sx * ratio);
+          var sy     = Math.round(data.sy * ratio);
+          var dx     = Math.round(data.dx * ratio);
+          var dy     = Math.round(data.dy * ratio);
+          var width  = Math.round(data.width * ratio);
+          var height = Math.round(data.height * ratio);
 
-      image.src = dataUrl;
-    });
-  });
-}
+          image.onload = function () {
+            context.drawImage(image,
+              sx, sy,
+              width, height,
+              dx, dy,
+              width, height
+            );
 
-function download(dataUrl, filename) {
-  var a = document.createElement('a');
+            loadedCount++;
 
-  document.body.appendChild(a);
+            if (loadedCount === totalCount) {
+              fragments = null;
 
-  a.setAttribute('download', filename + '.png');
-  a.setAttribute('href', dataUrl);
-  a.style.display = 'none';
-  a.click();
-  a.parentNode.removeChild(a);
-}
+              var croppedDataUrl = canvas.toDataURL('image/png');
 
-function copy(dataUrl) {
+              chrome.tabs.create({
+                url: croppedDataUrl,
+                windowId: sender.tab.windowId
+              });
+            }
+          };
 
-  var img = document.createElement('img');
-  img.src = dataUrl;
-  document.body.appendChild(img);
-
-  img.onload = function () {
-
-    var selection = window.getSelection();
-    var range     = document.createRange();
-
-    selection.removeAllRanges();
-
-    range.setStartBefore(img);
-    range.setEndAfter(img);
-    range.selectNode(img);
-
-    range.selectNode(img);
-    selection.addRange(range);
-
-    document.execCommand('copy');
-
-    img.parentNode.removeChild(img);
-  };
-}
-
-
-var screenshot;
-
-function capture(data, sender, callback) {
-
-  console.log('capture');
-  console.log(data);
-
-  var scale = data.ratio && data.ratio !== 1 ? 1 / data.ratio : 1;
-
-  if (scale !== 1) {
-    data.sx          = data.sx / scale;
-    data.sy          = data.sy / scale;
-    data.dx          = data.dx / scale;
-    data.dy          = data.dy / scale;
-    data.width       = data.width / scale;
-    data.height      = data.height / scale;
-    data.totalWidth  = data.totalWidth / scale;
-    data.totalHeight = data.totalHeight / scale;
-  }
-
-  screenshot.ratio  = data.ratio;
-  screenshot.width  = data.totalWidth;
-  screenshot.height = data.totalHeight;
-
-  if (!screenshot.canvas) {
-    var canvas = document.createElement('canvas');
-
-    canvas.width  = data.totalWidth;
-    canvas.height = data.totalHeight;
-
-    screenshot.canvas = canvas;
-    screenshot.ctx    = canvas.getContext('2d');
-  }
-
-
-  chrome.tabs.get(sender.tab.id, function (tab) {
-    chrome.tabs.captureVisibleTab(tab.windowId, {
-      format: 'png'
-    }, function (dataUrl) {
-
-      if (dataUrl) {
-
-        var img = new Image();
-
-        img.onload = function () {
-          screenshot.ctx.drawImage(img,
-            data.sx, data.sy,
-            data.width, data.height,
-            data.dx, data.dy,
-            data.width, data.height
-          );
-          callback(true);
-        };
-
-        img.src = dataUrl;
+          image.src = data.dataURI;
+        });
       }
-    });
-  });
-}
 
-function save(callback) {
-  // standard dataURI can be too big, let's blob instead
-  // http://code.google.com/p/chromium/issues/detail?id=69227#c27
-  var dataURI = screenshot.canvas.toDataURL('image/png');
+      console.log(fragments);
+    },
+  };
 
-  // convert base64 to raw binary data held in a string
-  // doesn't handle URLEncoded DataURIs
-  var byteString = atob(dataURI.split(',')[1]);
-
-  // separate out the mime component
-  var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-
-  // write the bytes of the string to an ArrayBuffer
-  var ab = new ArrayBuffer(byteString.length);
-  var ia = new Uint8Array(ab);
-  for (var i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-
-  // create a blob for writing to a file
-  var blob = new Blob([ab], { type: mimeString });
-
-  // come up with file-system size with a little buffer
-  var size = blob.size + (1024 / 2);
-  var name = new Date().getTime() + '.png';
+})();
 
 
-  function onWriteEnd() {
-    screenshot.name = name;
-    screenshot.path = 'filesystem:chrome-extension://' + chrome.runtime.id + '/temporary/' + name;
-    callback && callback();
-  }
-
-  function onError() { }
-
-  // create a blob for writing to a file
-  window.webkitRequestFileSystem(window.TEMPORARY, size, function (fs) {
-    fs.root.getFile(name, { create: true }, function (fileEntry) {
-      fileEntry.createWriter(function (fileWriter) {
-        fileWriter.onwriteend = onWriteEnd;
-        fileWriter.write(blob);
-      }, onError);
-    }, onError);
-  }, onError);
-}
-
-
-chrome.pageAction.onClicked.addListener(function onClicked(tab) {
-
-  screenshot = window.screenshot = {};
-
-  chrome.tabs.sendMessage(tab.id, { action: 'start' }, function () {
-    save(function () {
-
-      chrome.tabs.create({
-        url: chrome.extension.getURL('editor.html'),
-        windowId: tab.windowId
-      });
-    });
-  });
-});
-
+// handle message from tabs
 chrome.runtime.onMessage.addListener(function (message, sender, callback) {
 
   if (!sender || sender.id !== chrome.runtime.id || !sender.tab) {
     return;
   }
 
-  var action = message && message.action;
-
-  if (action === 'enable') {
-    chrome.pageAction.show(sender.tab.id);
-  } else if (action === 'capture') {
-    capture(message, sender, callback);
-
-    // This callback function becomes invalid when the event listener returns,
-    // unless you return true from the event listener to indicate you wish to
-    // send a response asynchronously (this will keep the message channel open
-    // to the other end until sendResponse is called).
-    return true;
+  var action = message.action;
+  if (action && screenShot[action]) {
+    return screenShot[action](message, sender, callback);
   }
 });

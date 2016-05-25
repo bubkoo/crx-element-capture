@@ -1,0 +1,11 @@
+@keyframes ant-line {
+  to {
+    stroke-dashoffset: 100000;
+  }
+}
+
+@-webkit-keyframes ant-line {
+  to {
+    stroke-dashoffset: 100000;
+  }
+}
