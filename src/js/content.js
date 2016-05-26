@@ -326,17 +326,23 @@ var handler = {};
     switch (e.keyCode) {
 
       case 13: // enter
+
         var bounds = getCropBounds();
         if (bounds.width > 0 && bounds.height > 0) {
+
           captureCrop();
+
         } else {
+
           var x = document.body.scrollLeft + document.documentElement.clientWidth / 2;
           var y = document.body.scrollTop + document.documentElement.clientHeight / 2;
+
           createDemoCrop(x, y);
           clearCrossLine();
           ensureStyle();
           bindCenter();
           bindController();
+
         }
         break;
 
