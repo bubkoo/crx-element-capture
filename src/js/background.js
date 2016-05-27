@@ -65,6 +65,8 @@ var screenShot;
     // capture desktop window
     captureWindow: function () {},
 
+    editContent: function () {},
+
     capture: function (data, sender, callback) {
 
       console.log('capture');

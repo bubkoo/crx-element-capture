@@ -13,12 +13,11 @@
   },
   "permissions": [
     "tabs",
+    "<all_urls>",
     "activeTab",
     "storage",
     "contextMenus",
-    "clipboardWrite",
-    "http://*/",
-    "https://*/"
+    "clipboardWrite"
   ],
   "browser_action": {
     "default_icon": {

@@ -1,24 +1,38 @@
 'use strict';
 
+
+var page = {
+  bindEvents: function () {},
+
+  hideScrollBar: function () {},
+  restoreScrollBar: function () {},
+
+  fixedElementCheck: function () {},
+  fixedElementRestore: function () {},
+  hideFixedElement: function () {},
+  showFixedElement: function () {}
+};
+
 var handler = {};
 
-(function () {
+var antLine = {
 
-  // ant line
-  // --------
+  styleNode: null,
+  fillColor: 'rgba(48,132,242,.2)',
+  strokeColor: '#ff2f6c',
+  strokeWidth: 1,
+  dasharray: 4,
 
-  var styleNode;
-  var zIndex      = 2147483630;
-  var fillColor   = 'rgba(48,132,242,.2)';
-  var strokeWidth = 1;
-  var strokeColor = '#ff2f6c'
+  ensureStyle: function () {
 
-  function ensureStyle() {
+    var styleNode = antLine.styleNode;
 
     if (!styleNode) {
-      styleNode = document.createElement('style');
 
-      styleNode.type = 'text/css';
+      styleNode = utils.createElement('style');
+
+      styleNode.type    = 'text/css';
+      antLine.styleNode = styleNode;
 
       var css = '@keyframes ant-line { to { stroke-dashoffset: 100000; } }';
 
@@ -31,26 +45,27 @@ var handler = {};
 
     if (!styleNode.parentNode) {
       var head = document.head || document.getElementsByTagName('head')[0];
-
       if (head) {
         head.appendChild(styleNode);
       }
     }
-  }
+  },
 
-  function clearStyle() {
-    removeElement(styleNode);
-  }
+  clearStyle: function () {
+    utils.removeElement(antLine.styleNode);
+  },
 
-  function createAntLine(fWidth, fHeight, tWidth, tHeight, expand, filled) {
+  create: function (fWidth, fHeight, tWidth, tHeight, expand, filled) {
 
-    var width  = Math.min(fWidth, expand ? tWidth + 2 * strokeWidth : tWidth);
-    var height = Math.min(fHeight, expand ? tHeight + 2 * strokeWidth : tHeight);
+    var sw = antLine.strokeWidth;
 
-    var xx = strokeWidth / 2;
-    var yy = strokeWidth / 2;
-    var hw = Math.min(fWidth, expand ? tWidth + strokeWidth : tWidth - xx);
-    var vh = Math.min(fHeight, expand ? tHeight + strokeWidth : tHeight - yy);
+    var width  = Math.min(fWidth, expand ? tWidth + 2 * sw : tWidth);
+    var height = Math.min(fHeight, expand ? tHeight + 2 * sw : tHeight);
+
+    var xx = sw / 2;
+    var yy = sw / 2;
+    var hw = Math.min(fWidth, expand ? tWidth + sw : tWidth - xx);
+    var vh = Math.min(fHeight, expand ? tHeight + sw : tHeight - yy);
 
     if (hw === fWidth) {
       hw = fWidth - xx;
@@ -66,25 +81,540 @@ var handler = {};
       + 'H' + xx
       + 'V' + yy;
 
-    var html = '' +
+    var template = '' +
       '<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewport="0 0 {width} {height}" style="position: absolute; left: 0; top: 0; border: 0; padding: 0; margin: 0">' +
       '  <path fill="{fillColor}" ' +
       '        stroke="{strokeColor}" ' +
       '        stroke-width="{strokeWidth}" ' +
-      '        stroke-dasharray="4" ' +
+      '        stroke-dasharray="{dasharray}" ' +
       '        style="animation: ant-line 2000s infinite linear; animation-delay: .3s; "' +
       '        d="{d}"></path>' +
       '</svg>';
 
-    return html
+    return template
       .replace('{d}', pathData)
       .replace(/\{width\}/g, '' + width)
       .replace(/\{height\}/g, '' + height)
-      .replace('{fillColor}', filled ? fillColor : 'none')
-      .replace('{strokeColor}', '' + strokeColor)
-      .replace('{strokeWidth}', '' + strokeWidth);
+      .replace('{fillColor}', filled ? antLine.fillColor : 'none')
+      .replace('{dasharray}', '' + antLine.dasharray)
+      .replace('{strokeColor}', '' + antLine.strokeColor)
+      .replace('{strokeWidth}', '' + antLine.strokeWidth);
   }
+};
 
+var captureElement = {
+
+  docWidth: 0,
+  docHeight: 0,
+  targetElem: null,
+  overlayElem: null,
+  outlineElem: null,
+
+  start: function () {
+
+    antLine.ensureStyle();
+    captureElement.ensureOverlay();
+    captureElement.bindEvents();
+  },
+
+  clear: function () {
+
+    antLine.clearStyle();
+    captureElement.removeOverlay();
+    captureElement.unBindEvents();
+    captureElement.targetElem = null;
+  },
+
+  ensureOverlay: function () {
+
+    var overlayElem = captureElement.overlayElem;
+    if (!overlayElem) {
+
+      overlayElem = utils.createDiv();
+
+      utils.setStyle(overlayElem, {
+        pointerEvents: 'none',
+        position: 'absolute',
+        left: '0px',
+        top: '0px'
+      });
+
+      captureElement.overlayElem = overlayElem;
+      captureElement.outlineElem = utils.createDiv();
+
+      utils.setStyle(captureElement.outlineElem, 'position', 'absolute');
+      utils.setZIndex(captureElement.outlineElem);
+
+      overlayElem.appendChild(captureElement.outlineElem);
+    }
+
+    if (!overlayElem.parentNode) {
+      document.body.appendChild(overlayElem);
+    }
+
+    captureElement.onWindowResize();
+  },
+
+  removeOverlay: function () {
+
+    utils.removeElement(captureElement.overlayElem);
+
+    var outlineElem = captureElement.outlineElem;
+    if (outlineElem) {
+      utils.setProp(outlineElem, 'innerHTML', '');
+      utils.setStyle(outlineElem, {
+        left: '0px',
+        top: '0px',
+        width: '0px',
+        height: '0px'
+      });
+    }
+  },
+
+  bindEvents: function () {
+
+    document.body.addEventListener('mousemove', captureElement.onMouseMove, false);
+    document.body.addEventListener('mousedown', captureElement.onMouseDown, false);
+    document.body.addEventListener('keydown', captureElement.onKeyDown, false);
+
+    window.addEventListener('resize', captureElement.onWindowResize, false);
+  },
+
+  unBindEvents: function () {
+
+    document.body.removeEventListener('mousemove', captureElement.onMouseMove, false);
+    document.body.removeEventListener('mousedown', captureElement.onMouseDown, false);
+    document.body.removeEventListener('keydown', captureElement.onKeyDown, false);
+
+    window.removeEventListener('resize', captureElement.onWindowResize, false);
+  },
+
+  onWindowResize: function () {
+
+    var docSize = utils.getDocumentSize();
+
+    captureElement.docWidth  = docSize.width;
+    captureElement.docHeight = docSize.height;
+
+    utils.setStyle(captureElement.overlayElem, {
+      width: captureElement.docWidth + 'px',
+      height: captureElement.docHeight + 'px'
+    });
+  },
+
+  onMouseMove: function updateTarget(e) {
+
+    if (captureElement.targetElem !== e.target) {
+
+      captureElement.targetElem = e.target;
+
+      var sw        = antLine.strokeWidth;
+      var bounds    = utils.getBounds(e.target);
+      var docWidth  = captureElement.docWidth;
+      var docHeight = captureElement.docHeight;
+
+      utils.setStyle(captureElement.outlineElem, {
+        top: Math.max(document.body.scrollTop + bounds.top - sw, 0) + 'px',
+        left: Math.max(document.body.scrollLeft + bounds.left - sw, 0) + 'px',
+        width: Math.min(docWidth, bounds.width + 2 * sw) + 'px',
+        height: Math.min(docHeight, bounds.height + 2 * sw) + 'px'
+      });
+
+      utils.setProp(captureElement.outlineElem, {
+        innerHTML: antLine.create(docWidth, docHeight, bounds.width, bounds.height, true, true)
+      });
+    }
+  },
+
+  onMouseDown: function doCapture() {
+
+    worker.start(captureElement.targetElem);
+    captureElement.clear();
+  },
+
+  onKeyDown: function onShortCut(e) {
+
+    switch (e.keyCode) {
+
+      case 13: // enter
+        captureElement.onMouseDown();
+        break;
+
+      case 27: // esc
+        captureElement.clear();
+        break;
+
+      default:
+        break;
+    }
+  }
+};
+
+var captureRegion = {};
+
+var worker = {
+
+  ratio: window.devicePixelRatio || 1,
+  delay: 200,
+  timer: 0,
+
+  fragments: null,
+  needScroll: null,
+  savedStates: null,
+
+  targetElem: null,
+  scrollParent: null,
+
+  originOverflow: null,
+  originScrollTop: null,
+  originScrollLeft: null,
+
+  targetTop: null,
+  targetLeft: null,
+  startScrollTop: null,
+  startScrollLeft: null,
+  eventBinded: false,
+
+  bindEvents: function () {
+
+    if (!worker.eventBinded) {
+      document.body.addEventListener('keydown', worker.abandon, false);
+      worker.eventBinded = true;
+    }
+  },
+
+  unBindEvents: function () {
+
+    document.body.removeEventListener('keydown', worker.abandon, false);
+    worker.eventBinded = false;
+  },
+
+  start: function (targetElem) {
+
+    if (targetElem) {
+      worker.targetElem = targetElem;
+    }
+
+    if (worker.targetElem) {
+
+      worker.bindEvents();
+
+      if (!worker.fragments) {
+        worker.prepareFragments()
+      }
+
+      worker.dispatch();
+    }
+  },
+
+  pause: function () {
+
+    if (worker.timer) {
+      clearTimeout(worker.timer);
+    }
+
+    worker.unBindEvents();
+  },
+
+  abandon: function () {
+
+    worker.clear();
+    chrome.runtime.sendMessage({ action: 'onCaptureAbandoned' });
+
+  },
+
+  clear: function () {
+
+
+    if (worker.needScroll === true) {
+      worker.restoreScrollBar();
+    }
+
+    worker.restoreViewports();
+
+    worker.timer        = 0;
+    worker.fragments    = null;
+    worker.needScroll   = null;
+    worker.savedStates  = null;
+    worker.targetElem   = null;
+    worker.scrollParent = null;
+
+    worker.unBindEvents();
+  },
+
+  finish: function () {
+
+    worker.clear();
+
+    chrome.runtime.sendMessage({ action: 'onCaptureEnd' });
+  },
+
+  dispatch: function () {
+
+    if (worker.hasFragment()) {
+      worker.nextFragment();
+    } else {
+      worker.finish();
+    }
+  },
+
+  hasFragment: function () {
+
+    return worker.fragments && worker.fragments.length > 0;
+  },
+
+  nextFragment: function () {
+
+    var next = worker.fragments.shift();
+
+    if (worker.needScroll === true) {
+
+      var scrollParent    = worker.scrollParent;
+      var startScrollTop  = worker.startScrollTop;
+      var startScrollLeft = worker.startScrollLeft;
+
+      var targetTop  = worker.targetTop;
+      var targetLeft = worker.targetLeft;
+
+      scrollParent.scrollTop  = next.dy + startScrollTop;
+      scrollParent.scrollLeft = next.dx + startScrollLeft;
+
+      next.sx = scrollParent.scrollLeft < next.dx + startScrollLeft
+        ? targetLeft + next.dx + startScrollLeft - scrollParent.scrollLeft
+        : targetLeft;
+
+      next.sy = scrollParent.scrollTop < next.dy + startScrollTop
+        ? targetTop + next.dy + startScrollTop - scrollParent.scrollTop
+        : targetTop;
+    }
+
+    worker.timer = setTimeout(function () {
+      chrome.runtime.sendMessage({ action: 'onFragment', fragment: next });
+    }, worker.delay);
+  },
+
+  prepareFragments: function (targetElem) {
+
+    if (targetElem) {
+
+      worker.targetElem;
+      worker.scrollParent = utils.isBody(targetElem)
+        ? targetElem.ownerDocument.body
+        : utils.getScrollParent(targetElem);
+
+      worker.adjustViewports();
+      worker.collectFragments();
+
+      worker.needScroll = worker.fragments.length > 1;
+
+      if (worker.needScroll) {
+
+        var bounds = getBounds(targetElem);
+
+        worker.targetTop       = bounds.top;
+        worker.targetLeft      = bounds.left;
+        worker.startScrollTop  = scrollParent.scrollTop;
+        worker.startScrollLeft = scrollParent.scrollLeft;
+      }
+    }
+  },
+
+  collectFragments: function () {
+
+    var fragments = worker.fragments = [];
+    var targetElem   = worker.targetElem;
+    var scrollParent = worker.scrollParent;
+
+    if (utils.isOverflow(targetElem, scrollParent)) { // scroll capture
+
+      worker.hideScrollBar();
+
+      // the screen capture size
+      var tSize       = utils.getElementSize(targetElem);
+      var totalWidth  = tSize.width;
+      var totalHeight = tSize.height;
+
+      // viewport size
+      var vSize  = utils.getViewportSize(scrollParent);
+      var xDelta = vSize.width;
+      var yDelta = vSize.height;
+
+      // collect the capture blocks
+      var xPos = 0;
+      var yPos = 0;
+
+      while (yPos < totalHeight) {
+
+        xPos = 0;
+
+        while (xPos < totalWidth) {
+
+          fragments.push({
+            dx: xPos,
+            dy: yPos,
+            width: Math.min(xDelta, totalWidth - xPos),
+            height: Math.min(yDelta, totalHeight - yPos),
+            totalWidth: totalWidth,
+            totalHeight: totalHeight,
+            ratio: worker.ratio
+          });
+
+          xPos += xDelta;
+        }
+
+        yPos += yDelta;
+      }
+
+    } else { // normal capture
+
+      var bounds = utils.getBounds(targetElem);
+
+      fragments.push({
+        sx: bounds.left,
+        sy: bounds.top,
+        dx: 0,
+        dy: 0,
+        width: bounds.width,
+        height: bounds.height,
+        totalWidth: bounds.width,
+        totalHeight: bounds.height,
+        ratio: worker.ratio
+      });
+    }
+  },
+
+  hideScrollBar: function () {
+
+    // save parent's status
+    worker.originOverflow   = worker.scrollParent.style.overflow;
+    worker.originScrollTop  = worker.scrollParent.scrollTop;
+    worker.originScrollLeft = worker.scrollParent.scrollLeft;
+
+    // disable all scrollBars, restore it when captured
+    utils.setStyle(worker.scrollParent, {
+      overflow: 'hidden'
+    });
+  },
+
+  restoreScrollBar: function () {
+
+    // restore the parent's scrollBar
+    worker.scrollParent.style.overflow = worker.originOverflow;
+    worker.scrollParent.scrollTop      = worker.originScrollTop;
+    worker.scrollParent.scrollLeft     = worker.originScrollLeft;
+  },
+
+  adjustViewports: function () {
+
+    var savedStates = worker.savedStates = [];
+    var targetElem   = worker.targetElem;
+    var scrollParent = worker.scrollParent;
+
+    if (utils.isOverflow(targetElem, scrollParent)) {
+
+      savedStates.push({
+        element: scrollParent,
+        scrollTop: scrollParent.scrollTop,
+        scrollLeft: scrollParent.scrollLeft
+      });
+
+      if (utils.isBody(scrollParent)) {
+
+        var bounds = utils.getBounds(targetElem);
+
+        scrollParent.scrollTop += bounds.top;
+        scrollParent.scrollLeft += bounds.left;
+      } else {
+
+        var offset = utils.getOffset(targetElem, scrollParent);
+
+        scrollParent.scrollTop  = offset.top;
+        scrollParent.scrollLeft = offset.left;
+      }
+    }
+
+    var vSize  = utils.getViewportSize(document.body);
+    var parent = scrollParent;
+
+    while (!utils.isBody(parent)) {
+
+      var top  = 0;
+      var left = 0;
+
+      var pBounds = utils.getBounds(parent);
+      var tBounds = utils.getBounds(targetElem);
+
+      if (tBounds.top < 0) {
+
+        top = pBounds.top >= 0 ? tBounds.top : Math.max(tBounds.top, pBounds.top);
+
+      } else if (tBounds.top + tBounds.height > vSize.height) {
+
+        top = tBounds.top + tBounds.height - vSize.height;
+        if (pBounds.top >= 0) {
+          top = Math.min(top, pBounds.top);
+        }
+      }
+
+      if (tBounds.left < 0) {
+
+        left = pBounds.left >= 0 ? tBounds.left : Math.max(tBounds.left, pBounds.left);
+
+      } else if (tBounds.left + tBounds.width > vSize.width) {
+
+        left = tBounds.left + tBounds.width - vSize.width;
+        if (pBounds.left >= 0) {
+          left = Math.min(left, pBounds.left);
+        }
+      }
+
+      if (top !== 0 || left !== 0) {
+
+        var container = utils.getScrollParent(parent);
+
+        savedStates.push({
+          element: container,
+          scrollTop: container.scrollTop,
+          scrollLeft: container.scrollLeft
+        });
+
+        container.scrollTop += top;
+        container.scrollLeft += left;
+
+        parent = container;
+
+      } else {
+        break;
+      }
+    }
+  },
+
+  restoreViewports: function () {
+
+    if (worker.savedStates) {
+      worker.savedStates.forEach(function (state) {
+        utils.setStyle(state.element, {
+          scrollTop: state.scrollTop,
+          scrollLeft: state.scrollLeft
+        });
+      });
+    }
+
+    worker.savedStates = null;
+  },
+
+  fixedElementCheck: function () {},
+
+  fixedElementRestore: function () {},
+
+  hideFixedElement: function () {},
+
+  showFixedElement: function () {}
+};
+
+(function () {
+
+  var zIndex = 2147483630;
 
   // crop elements
   // -------------
@@ -272,7 +802,7 @@ var handler = {};
       cropCenterElem.style.width  = bounds.width + 'px';
       cropCenterElem.style.height = bounds.height + 'px';
 
-      cropAntLineElem.innerHTML = createAntLine(dSize.width, dSize.height, bounds.width, bounds.height, false, false);
+      cropAntLineElem.innerHTML = antLine.create(dSize.width, dSize.height, bounds.width, bounds.height, false, false);
 
       if (resizeWrap) {
         resizeWrap.style.display = '';
@@ -339,7 +869,7 @@ var handler = {};
 
           createDemoCrop(x, y);
           clearCrossLine();
-          ensureStyle();
+          antLine.ensureStyle();
           bindCenter();
           bindController();
 
@@ -360,7 +890,7 @@ var handler = {};
     clearCrossLine();
     clearController();
     clearCrop();
-    clearStyle();
+    antLine.clearStyle();
 
     window.removeEventListener('resize', onWindowResize, false);
     document.body.removeEventListener('keydown', onCropKeyDown, false);
@@ -552,7 +1082,7 @@ var handler = {};
 
     var bounds = getCropBounds();
     if (bounds.width && bounds.height) {
-      ensureStyle();
+      antLine.ensureStyle();
       bindCenter();
       bindController();
     } else {
@@ -1273,117 +1803,15 @@ var handler = {};
   var overlayElem;
   var outlineElem;
 
-  function ensureOverlay() {
-
-    if (!overlayElem) {
-
-      overlayElem = document.createElement('div');
-
-      overlayElem.style.pointerEvents = 'none';
-      overlayElem.style.position      = 'absolute';
-      overlayElem.style.left          = '0';
-      overlayElem.style.top           = '0';
-
-      outlineElem = document.createElement('div');
-
-      outlineElem.style.position = 'absolute';
-      outlineElem.style.zIndex   = zIndex;
-
-      overlayElem.appendChild(outlineElem);
-    }
-
-    var docSize = getDocumentSize();
-
-    overlayElem.style.width  = docSize.width + 'px';
-    overlayElem.style.height = docSize.height + 'px';
-
-    if (!overlayElem.parentNode) {
-      document.body.appendChild(overlayElem);
-    }
-  }
-
-  function removeOverlay() {
-
-    removeElement(overlayElem);
-
-    if (outlineElem) {
-      outlineElem.innerHTML    = '';
-      outlineElem.style.top    = '0px';
-      outlineElem.style.left   = '0px';
-      outlineElem.style.width  = '0px';
-      outlineElem.style.height = '0px';
-    }
-  }
 
   handler.captureEntire = function () {
     targetElem = document.documentElement;
     handler.nextFragment();
   };
 
-  function updateAntLine(e) {
-
-    if (targetElem !== e.target) {
-
-      targetElem = e.target;
-
-      var dSize  = getDocumentSize();
-      var bounds = getBounds(targetElem);
-
-      var top    = Math.max(document.body.scrollTop + bounds.top - strokeWidth, 0);
-      var left   = Math.max(document.body.scrollLeft + bounds.left - strokeWidth, 0);
-      var width  = Math.min(dSize.width, bounds.width + 2 * strokeWidth);
-      var height = Math.min(dSize.height, bounds.height + 2 * strokeWidth);
-
-      outlineElem.style.top    = top + 'px';
-      outlineElem.style.left   = left + 'px';
-      outlineElem.style.width  = width + 'px';
-      outlineElem.style.height = height + 'px';
-
-      outlineElem.innerHTML = createAntLine(dSize.width, dSize.height, bounds.width, bounds.height, true, true);
-    }
-  }
-
-  function clearAntLine() {
-
-    removeOverlay();
-    clearStyle();
-
-    document.body.removeEventListener('mousemove', updateAntLine, false);
-    document.body.removeEventListener('mousedown', captureElement, false);
-    document.body.removeEventListener('keydown', onShortCutKey, false);
-  }
-
-  function onShortCutKey(e) {
-
-    switch (e.keyCode) {
-
-      case 13: // enter
-        captureElement();
-        break;
-
-      case 27: // esc
-        clearAntLine();
-        targetElem = null;
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  function captureElement() {
-    clearAntLine();
-    handler.nextFragment();
-  }
-
   handler.captureElement = function () {
 
-    ensureStyle();
-    ensureOverlay();
-
-    document.body.addEventListener('mousemove', updateAntLine, false);
-    document.body.addEventListener('mousedown', captureElement, false);
-    document.body.addEventListener('keydown', onShortCutKey, false);
+    captureElement.start();
   };
 
 
@@ -1404,46 +1832,7 @@ var handler = {};
 
   handler.nextFragment = function () {
 
-    if (!fragments) {
-      prepareFragments();
-    }
-
-    if (fragments.length) {
-
-      var next = fragments.shift();
-
-      if (needScroll) {
-
-        scrollParent.scrollTop  = next.dy + startScrollTop;
-        scrollParent.scrollLeft = next.dx + startScrollLeft;
-
-        next.sx = scrollParent.scrollLeft < next.dx + startScrollLeft
-          ? targetLeft + next.dx + startScrollLeft - scrollParent.scrollLeft
-          : targetLeft;
-
-        next.sy = scrollParent.scrollTop < next.dy + startScrollTop
-          ? targetTop + next.dy + startScrollTop - scrollParent.scrollTop
-          : targetTop;
-      }
-
-      setTimeout(function () {
-        chrome.runtime.sendMessage({ action: 'onFragment', fragment: next });
-      }, delay);
-
-    } else {
-
-      if (needScroll) {
-        restoreScrollBar();
-      }
-
-      restoreViewports();
-
-      fragments    = null;
-      targetElem   = null;
-      scrollParent = null;
-
-      chrome.runtime.sendMessage({ action: 'onCaptureEnd' });
-    }
+    worker.dispatch();
   }
 
   function prepareFragments() {
@@ -1647,39 +2036,319 @@ var handler = {};
     savedStates = null;
   }
 
+})();
 
-  // helpers
-  // -------
 
-  function clamp(value, min, max) {
+// helpers
+// -------
+
+function isBody(elem) {
+
+  return elem === document
+    || elem === document.body
+    || elem === document.documentElement;
+}
+
+function isBodyScrollable() {
+
+  var docElem = document.documentElement;
+  return docElem.scrollWidth > docElem.clientWidth || docElem.scrollHeight > docElem.clientHeight;
+}
+
+function isOverflow(elem, parent) {
+
+  var bounds = getBounds(elem);
+
+  // parent is body
+  if (isBody(parent)) {
+
+    if (bounds.left < 0 || bounds.top < 0) {
+      return true;
+    }
+
+    var vSize = getViewportSize(parent);
+
+    if (elem === elem.ownerDocument.body) {
+      return elem.scrollWidth > vSize.width
+        || elem.scrollHeight > vSize.height;
+    }
+
+    return bounds.left + bounds.width > vSize.width
+      || bounds.top + bounds.height > vSize.height;
+  }
+
+  if (bounds.width > parent.clientWidth
+    || bounds.height > parent.clientHeight) {
+    return true;
+  }
+
+  var offset = getOffset(elem, parent);
+
+  return bounds.width + offset.left - parent.scrollLeft > parent.clientWidth
+    || bounds.height + offset.top - parent.scrollTop > parent.clientHeight;
+}
+
+function getViewportSize(elem) {
+
+  elem = isBody(elem) ? elem.ownerDocument.documentElement : elem;
+
+  return {
+    width: elem.clientWidth,
+    height: elem.clientHeight
+  }
+}
+
+function getOffset(elem, relativeElem) {
+
+  var top  = 0;
+  var left = 0;
+
+  var computedStyle    = getComputedStyle(relativeElem);
+  var computedPosition = computedStyle.getPropertyValue('position');
+  var inlinePosition   = '';
+
+  if (computedPosition === 'static') {
+    inlinePosition = relativeElem.style.position;
+
+    relativeElem.style.position = 'relative';
+  }
+
+  while (elem && elem !== relativeElem) {
+    top += elem.offsetTop;
+    left += elem.offsetLeft;
+
+    elem = elem.offsetParent;
+  }
+
+  relativeElem.style.position = inlinePosition;
+
+  return {
+    left: left,
+    top: top
+  };
+}
+
+function getBounds(elem) {
+
+  var doc;
+
+  if (elem === document) {
+    doc  = document;
+    elem = document.documentElement;
+  } else {
+    doc = elem.ownerDocument;
+  }
+
+  var docEle = doc.documentElement;
+  var bounds = {};
+
+  // The original object returned by getBoundingClientRect is immutable,
+  // so we clone it.
+  var rect = elem.getBoundingClientRect();
+  for (var k in rect) {
+    bounds[k] = rect[k];
+  }
+
+  if (typeof bounds.width === 'undefined') {
+    bounds.width = document.body.scrollWidth - bounds.left - bounds.right;
+  }
+  if (typeof bounds.height === 'undefined') {
+    bounds.height = document.body.scrollHeight - bounds.top - bounds.bottom;
+  }
+
+  bounds.top    = bounds.top - docEle.clientTop;
+  bounds.left   = bounds.left - docEle.clientLeft;
+  bounds.right  = doc.body.clientWidth - bounds.width - bounds.left;
+  bounds.bottom = doc.body.clientHeight - bounds.height - bounds.top;
+
+  return bounds;
+}
+
+function getScrollParent(elem) {
+
+  // In firefox if the el is inside an iframe with display: none;
+  // window.getComputedStyle() will return null;
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=548397
+
+  var computedStyle = getComputedStyle(elem) || {};
+  var position      = computedStyle.position;
+
+  if (position === 'fixed') {
+    return elem;
+  }
+
+  var parent = elem;
+
+  while (parent = parent.parentNode) {
+    var style;
+    try {
+      style = getComputedStyle(parent);
+    } catch (err) {}
+
+    if (typeof style === 'undefined' || style === null) {
+      return parent;
+    }
+
+    var overflow  = style.overflow;
+    var overflowX = style.overflowX;
+    var overflowY = style.overflowY;
+
+    if (/(auto|scroll)/.test(overflow + overflowY + overflowX)) {
+      if (position !== 'absolute' || ['relative', 'absolute', 'fixed'].indexOf(style.position) >= 0) {
+        return parent;
+      }
+    }
+  }
+
+  return document.body;
+}
+
+function getElementSize(elem) {
+
+  return isBody(elem)
+    ? getDocumentSize(elem.ownerDocument)
+    : {
+    width: max([elem.offsetWidth, elem.clientWidth]),
+    height: max([elem.offsetHeight, elem.clientHeight])
+  };
+}
+
+function getDocumentSize(doc) {
+
+  doc = doc || document;
+
+  var body   = doc.body;
+  var docEle = doc.documentElement;
+
+  return {
+    width: max([
+      body.scrollWidth,
+      body.offsetWidth,
+      docEle.clientWidth,
+      docEle.scrollWidth,
+      docEle.offsetWidth
+    ]),
+    height: max([
+      body.scrollHeight,
+      body.offsetHeight,
+      docEle.clientHeight,
+      docEle.scrollHeight,
+      docEle.offsetHeight
+    ])
+  }
+}
+
+function removeElement(elem) {
+  if (elem && elem.parentNode) {
+    elem.parentNode.removeChild(elem);
+  }
+}
+
+function max(numbers) {
+  return Math.max.apply(Math, numbers.filter(function (x) { return x; }));
+}
+
+function clamp(value, min, max) {
+  return min < max
+    ? (value < min ? min : value > max ? max : value)
+    : (value < max ? max : value > min ? min : value);
+}
+
+var utils = {
+
+  isObject: function (val) {
+
+    return typeof val === 'object';
+  },
+
+  isUndefined: function (val) {
+
+    return typeof val === 'undefined';
+  },
+
+  max: function (numbers) {
+
+    return Math.max.apply(Math, numbers.filter(function (x) { return !utils.isUndefined(x); }));
+  },
+
+  clamp: function (value, min, max) {
+
     return min < max
       ? (value < min ? min : value > max ? max : value)
       : (value < max ? max : value > min ? min : value);
-  }
+  },
 
-  function max(numbers) {
-    return Math.max.apply(Math, numbers.filter(function (x) { return x; }));
-  }
+  removeElement: function (elem) {
 
-  function isBody(elem) {
+    if (elem && elem.parentNode) {
+      elem.parentNode.removeChild(elem);
+    }
+  },
+
+  createElement: function (targetName) {
+
+    return document.createElement(targetName);
+  },
+
+  createDiv: function () {
+
+    return utils.createElement('div');
+  },
+
+  setProp: function (elem, prop, value) {
+
+    if (utils.isObject(prop)) {
+      for (var key in prop) {
+        elem[key] = prop[key];
+      }
+    } else {
+      elem[prop] = value;
+    }
+  },
+
+  setStyle: function (elem, prop, value) {
+
+    if (utils.isObject(prop)) {
+      for (var key in prop) {
+        elem.style[key] = prop[key];
+      }
+    } else {
+      elem.style[prop] = value;
+    }
+  },
+
+  setZIndex: function (elem, zIndex) {
+
+    utils.setStyle(elem, 'zIndex',
+      utils.isUndefined(zIndex) ? 2147483630 : zIndex);
+  },
+
+  isBody: function (elem) {
 
     return elem === document
       || elem === document.body
       || elem === document.documentElement;
-  }
+  },
 
-  function isOverflow(elem, parent) {
+  isBodyScrollable: function () {
 
-    var bounds = getBounds(elem);
+    var docElem = document.documentElement;
+    return docElem.scrollWidth > docElem.clientWidth
+      || docElem.scrollHeight > docElem.clientHeight;
+  },
+
+  isOverflow: function (elem, parent) {
+
+    var bounds = utils.getBounds(elem);
 
     // parent is body
-    if (isBody(parent)) {
+    if (utils.isBody(parent)) {
 
       if (bounds.left < 0 || bounds.top < 0) {
         return true;
       }
 
-      var vSize = getViewportSize(parent);
+      var vSize = utils.getViewportSize(parent);
 
       if (elem === elem.ownerDocument.body) {
         return elem.scrollWidth > vSize.width
@@ -1695,88 +2364,17 @@ var handler = {};
       return true;
     }
 
-    var offset = getOffset(elem, parent);
+    var offset = utils.getOffset(elem, parent);
 
     return bounds.width + offset.left - parent.scrollLeft > parent.clientWidth
       || bounds.height + offset.top - parent.scrollTop > parent.clientHeight;
-  }
+  },
 
-  function getElementSize(elem) {
+  getComputedStyle: function (elem) {
+    return elem.defaultView.getComputedStyle(elem, null);
+  },
 
-    return isBody(elem)
-      ? getDocumentSize(elem.ownerDocument)
-      : {
-      width: max([elem.offsetWidth, elem.clientWidth]),
-      height: max([elem.offsetHeight, elem.clientHeight])
-    };
-  }
-
-  function getDocumentSize(doc) {
-
-    doc = doc || document;
-
-    var body   = doc.body;
-    var docEle = doc.documentElement;
-
-    return {
-      width: max([
-        body.scrollWidth,
-        body.offsetWidth,
-        docEle.clientWidth,
-        docEle.scrollWidth,
-        docEle.offsetWidth
-      ]),
-      height: max([
-        body.scrollHeight,
-        body.offsetHeight,
-        docEle.clientHeight,
-        docEle.scrollHeight,
-        docEle.offsetHeight
-      ])
-    }
-  }
-
-  function getViewportSize(elem) {
-
-    elem = isBody(elem) ? elem.ownerDocument.documentElement : elem;
-
-    return {
-      width: elem.clientWidth,
-      height: elem.clientHeight
-    }
-  }
-
-  function getOffset(elem, relativeElem) {
-
-    var top  = 0;
-    var left = 0;
-
-    var computedStyle    = getComputedStyle(relativeElem);
-    var computedPosition = computedStyle.getPropertyValue('position');
-    var inlinePosition   = '';
-
-    if (computedPosition === 'static') {
-      inlinePosition = relativeElem.style.position;
-
-      relativeElem.style.position = 'relative';
-    }
-
-    while (elem && elem !== relativeElem) {
-      top += elem.offsetTop;
-      left += elem.offsetLeft;
-
-      elem = elem.offsetParent;
-    }
-
-    relativeElem.style.position = inlinePosition;
-
-    return {
-      left: left,
-      top: top
-    };
-  }
-
-  function getBounds(elem) {
+  getBounds: function (elem) {
 
     var doc;
 
@@ -1797,10 +2395,10 @@ var handler = {};
       bounds[k] = rect[k];
     }
 
-    if (typeof bounds.width === 'undefined') {
+    if (utils.isUndefined(bounds.width)) {
       bounds.width = document.body.scrollWidth - bounds.left - bounds.right;
     }
-    if (typeof bounds.height === 'undefined') {
+    if (utils.isUndefined(bounds.height)) {
       bounds.height = document.body.scrollHeight - bounds.top - bounds.bottom;
     }
 
@@ -1810,16 +2408,91 @@ var handler = {};
     bounds.bottom = doc.body.clientHeight - bounds.height - bounds.top;
 
     return bounds;
-  }
+  },
 
-  function getScrollParent(elem) {
+  getOffset: function (elem, relativeElem) {
+
+    var top  = 0;
+    var left = 0;
+
+    var computed  = utils.getComputedStyle(relativeElem);
+    var position  = computed.getPropertyValue('position');
+    var inlinePos = '';
+
+    if (position === 'static') {
+      inlinePos = relativeElem.style.position;
+
+      relativeElem.style.position = 'relative';
+    }
+
+    while (elem && elem !== relativeElem) {
+      top += elem.offsetTop;
+      left += elem.offsetLeft;
+
+      elem = elem.offsetParent;
+    }
+
+    relativeElem.style.position = inlinePos;
+
+    return {
+      left: left,
+      top: top
+    };
+  },
+
+  getDocumentSize: function (doc) {
+
+    doc = doc || document;
+
+    var body = doc.body;
+    var html = doc.documentElement;
+
+    return {
+      width: utils.max([
+        body.scrollWidth,
+        body.offsetWidth,
+        html.clientWidth,
+        html.scrollWidth,
+        html.offsetWidth
+      ]),
+      height: utils.max([
+        body.scrollHeight,
+        body.offsetHeight,
+        html.clientHeight,
+        html.scrollHeight,
+        html.offsetHeight
+      ])
+    }
+  },
+
+  getElementSize: function (elem) {
+
+    return utils.isBody(elem)
+      ? utils.getDocumentSize(elem.ownerDocument)
+      : {
+      width: utils.max([elem.offsetWidth, elem.clientWidth]),
+      height: utils.max([elem.offsetHeight, elem.clientHeight])
+    };
+  },
+
+  getViewportSize: function (elem) {
+
+    elem = utils.isBody(elem) ? elem.ownerDocument.documentElement : elem;
+
+    return {
+      width: elem.clientWidth,
+      height: elem.clientHeight
+    }
+  },
+
+  getScrollParent: function (elem) {
 
     // In firefox if the el is inside an iframe with display: none;
     // window.getComputedStyle() will return null;
     // https://bugzilla.mozilla.org/show_bug.cgi?id=548397
 
-    var computedStyle = getComputedStyle(elem) || {};
-    var position      = computedStyle.position;
+    var computed = utils.getComputedStyle(elem) || {};
+    var position = computed.position;
 
     if (position === 'fixed') {
       return elem;
@@ -1830,7 +2503,7 @@ var handler = {};
     while (parent = parent.parentNode) {
       var style;
       try {
-        style = getComputedStyle(parent);
+        style = utils.getComputedStyle(parent);
       } catch (err) {}
 
       if (typeof style === 'undefined' || style === null) {
@@ -1849,27 +2522,14 @@ var handler = {};
     }
 
     return document.body;
-  }
-
-  function removeElement(elem) {
-    if (elem && elem.parentNode) {
-      elem.parentNode.removeChild(elem);
-    }
-  }
-
-  function isBodyScrollable() {
-
-    var docElem = document.documentElement;
-    return docElem.scrollWidth > docElem.clientWidth || docElem.scrollHeight > docElem.clientHeight;
-  }
-
-})();
+  },
+};
 
 
 // message
 // -------
 
-// received message from background
+// handle message from background
 chrome.runtime.onMessage.addListener(function (message, sender) {
   if (sender && sender.id === chrome.runtime.id) {
     var action = message.action;
@@ -1878,3 +2538,7 @@ chrome.runtime.onMessage.addListener(function (message, sender) {
     }
   }
 });
+
+
+// content script check
+window.isContentScriptLoaded = true;
