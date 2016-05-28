@@ -1,8 +1,7 @@
-var bgWindow   = chrome.extension.getBackgroundPage();
-var screenShot = bgWindow.screenShot;
+var bgWindow = chrome.extension.getBackgroundPage();
+var handler  = bgWindow.handler;
 
 function i18n() {}
-
 
 $(function () {
 
@@ -11,8 +10,8 @@ $(function () {
   $('.capture-menu').on('click', 'li', function () {
 
     var method = this.id;
-    if (method && screenShot[method]) {
-      screenShot[method]();
+    if (method && handler[method]) {
+      handler[method]();
     }
 
     window.close();

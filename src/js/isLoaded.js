@@ -1,5 +1,6 @@
 // check content scripts
-chrome.extension.sendRequest({
-  action: window.isContentScriptLoaded ? 'contentScriptPrepared' : 'injectContentScript'
+
+chrome.runtime.sendMessage({
+  action: window.isContentScriptLoaded ? 'onContentReady' : 'injectContentScript'
 });
 

@@ -8,6 +8,26 @@ var handler = {
 
   captureEntire: function () { worker.start(document.documentElement); },
 
+  captureVisible: function () {
+
+    var width  = document.documentElement.clientWidth;
+    var height = document.documentElement.clientHeight;
+
+    worker.fragments = [{
+      sx: 0,
+      sy: 0,
+      dx: 0,
+      dy: 0,
+      width: width,
+      height: height,
+      totalWidth: width,
+      totalHeight: height,
+      ratio: window.devicePixelRatio
+    }];
+
+    worker.dispatch(true);
+  },
+
   nextFragment: function () { worker.dispatch(); },
 };
 

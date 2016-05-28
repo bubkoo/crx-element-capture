@@ -1,56 +1,111 @@
 'use strict';
 
-var screenShot;
+var handler;
 
 (function () {
 
   var fragments;
 
-  screenShot = {
+  handler = {
+
+    tab: null,
+    tabId: 0,
+    windowId: 0,
+    captureCmd: '',
 
     initContextMenu: function () {},
 
     queryActiveTab: function (callback) {
 
-      if (callback) {
-        chrome.tabs.query({
-          active: true,
-          lastFocusedWindow: true
-        }, function (tabs) {
-          callback(tabs[0]);
+      chrome.tabs.query({
+        active: true,
+        lastFocusedWindow: true
+      }, function (tabs) {
+
+        var tab = tabs && tabs[0] || {};
+
+        handler.tab      = tab;
+        handler.tabId    = tab.id;
+        handler.windowId = tab.windowId;
+
+        console.log(tab);
+
+        callback && callback(tab);
+      });
+    },
+
+    checkContentScript: function () {
+
+      handler.queryActiveTab(function () {
+        handler.executeScript({
+          file: "js/isLoaded.js"
         });
+      });
+    },
+
+    injectContentScript: function () {
+
+      handler.executeScript({ file: "js/content.js" }, function () {
+        handler.onContentReady();
+      });
+    },
+
+    executeScript: function (details, callback) {
+
+      if (handler.tabId) {
+        chrome.tabs.executeScript(handler.tabId, details, callback);
       }
     },
 
-    sendCaptureCmd: function (type) {
-      screenShot.queryActiveTab(function (tab) {
+    onContentReady: function () {
+
+      if (handler.captureCmd) {
+        handler.sendCaptureCmd(handler.captureCmd);
+        handler.captureCmd = '';
+      }
+    },
+
+    sendCaptureCmd: function (cmd) {
+
+      handler.queryActiveTab(function (tab) {
         chrome.tabs.sendMessage(tab.id, {
-          action: type
+          action: cmd
         });
       });
     },
 
     captureElement: function () {
 
-      screenShot.sendCaptureCmd('captureElement');
+      // capture the selected html element
+      handler.captureCmd = 'captureElement';
+      handler.checkContentScript();
     },
 
     captureRegion: function () {
 
-      screenShot.sendCaptureCmd('captureRegion');
+      // capture the crop region
+      handler.captureCmd = 'captureRegion';
+      handler.checkContentScript();
     },
 
     captureEntire: function () {
 
       // capture entire page
-      screenShot.sendCaptureCmd('captureEntire');
+      handler.captureCmd = 'captureEntire';
+      handler.checkContentScript();
     },
 
-    // capture the visible part of page
-    captureVisible: function () {},
+    captureVisible: function () {
 
-    // capture desktop window
-    captureWindow: function () {},
+      // capture the visible part of page
+      handler.captureCmd = 'captureVisible';
+      handler.checkContentScript();
+    },
+
+    captureWindow: function () {
+
+      // capture desktop window
+    },
 
     editContent: function () {},
 
@@ -72,14 +127,14 @@ var screenShot;
         data.totalHeight = data.totalHeight / scale;
       }
 
-      if (!screenShot.canvas) {
+      if (!handler.canvas) {
         var canvas = document.createElement('canvas');
 
         canvas.width  = data.totalWidth;
         canvas.height = data.totalHeight;
 
-        screenShot.canvas = canvas;
-        screenShot.ctx    = canvas.getContext('2d');
+        handler.canvas = canvas;
+        handler.ctx    = canvas.getContext('2d');
       }
 
       chrome.tabs.get(sender.tab.id, function (tab) {
@@ -92,7 +147,7 @@ var screenShot;
             var img = new Image();
 
             img.onload = function () {
-              screenShot.ctx.drawImage(img,
+              handler.ctx.drawImage(img,
                 data.sx, data.sy,
                 data.width, data.height,
                 data.dx, data.dy,
@@ -200,12 +255,14 @@ var screenShot;
 // handle message from tabs
 chrome.runtime.onMessage.addListener(function (message, sender, callback) {
 
+  console.log(message);
+
   if (!sender || sender.id !== chrome.runtime.id || !sender.tab) {
     return;
   }
 
   var action = message.action;
-  if (action && screenShot[action]) {
-    return screenShot[action](message, sender, callback);
+  if (action && handler[action]) {
+    return handler[action](message, sender, callback);
   }
 });
