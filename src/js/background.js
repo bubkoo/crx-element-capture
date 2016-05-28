@@ -11,6 +11,7 @@ var screenShot;
     initContextMenu: function () {},
 
     queryActiveTab: function (callback) {
+
       if (callback) {
         chrome.tabs.query({
           active: true,
@@ -21,42 +22,28 @@ var screenShot;
       }
     },
 
-    // capture the selected element
-    captureElement: function (message, sender) {
+    sendCaptureCmd: function (type) {
       screenShot.queryActiveTab(function (tab) {
         chrome.tabs.sendMessage(tab.id, {
-          action: 'captureElement'
-        }, function () {
-
-          if (screenShot.canvas) {
-            var croppedDataUrl = screenShot.canvas.toDataURL('image/png');
-            chrome.tabs.create({
-              url: croppedDataUrl,
-              windowId: sender.tab.windowId
-            });
-          }
+          action: type
         });
       });
-
-      return true;
     },
 
-    // capture the selected region
+    captureElement: function () {
+
+      screenShot.sendCaptureCmd('captureElement');
+    },
+
     captureRegion: function () {
-      screenShot.queryActiveTab(function (tab) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'captureRegion'
-        });
-      });
+
+      screenShot.sendCaptureCmd('captureRegion');
     },
 
-    // capture entire page
     captureEntire: function () {
-      screenShot.queryActiveTab(function (tab) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'captureEntire'
-        });
-      });
+
+      // capture entire page
+      screenShot.sendCaptureCmd('captureEntire');
     },
 
     // capture the visible part of page

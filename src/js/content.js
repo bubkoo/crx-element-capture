@@ -1,5 +1,15 @@
 'use strict';
 
+var handler = {
+
+  captureElement: function () { nodeCapture.start(); },
+
+  captureRegion: function () { cropCapture.start(); },
+
+  captureEntire: function () { worker.start(document.documentElement); },
+
+  nextFragment: function () { worker.dispatch(); },
+};
 
 var antLine = {
 
@@ -88,7 +98,7 @@ var antLine = {
   }
 };
 
-var captureElement = {
+var nodeCapture = {
 
   docWidth: 0,
   docHeight: 0,
@@ -99,21 +109,21 @@ var captureElement = {
   start: function () {
 
     antLine.ensureStyle();
-    captureElement.ensureOverlay();
-    captureElement.bindEvents();
+    nodeCapture.ensureOverlay();
+    nodeCapture.bindEvents();
   },
 
   clear: function () {
 
     antLine.clearStyle();
-    captureElement.removeOverlay();
-    captureElement.unBindEvents();
-    captureElement.targetElem = null;
+    nodeCapture.removeOverlay();
+    nodeCapture.unBindEvents();
+    nodeCapture.targetElem = null;
   },
 
   ensureOverlay: function () {
 
-    var overlayElem = captureElement.overlayElem;
+    var overlayElem = nodeCapture.overlayElem;
     if (!overlayElem) {
 
       overlayElem = utils.createDiv();
@@ -125,27 +135,27 @@ var captureElement = {
         top: '0px'
       });
 
-      captureElement.overlayElem = overlayElem;
-      captureElement.outlineElem = utils.createDiv();
+      nodeCapture.overlayElem = overlayElem;
+      nodeCapture.outlineElem = utils.createDiv();
 
-      utils.setStyle(captureElement.outlineElem, 'position', 'absolute');
-      utils.setZIndex(captureElement.outlineElem);
+      utils.setStyle(nodeCapture.outlineElem, 'position', 'absolute');
+      utils.setZIndex(nodeCapture.outlineElem);
 
-      overlayElem.appendChild(captureElement.outlineElem);
+      overlayElem.appendChild(nodeCapture.outlineElem);
     }
 
     if (!overlayElem.parentNode) {
       document.body.appendChild(overlayElem);
     }
 
-    captureElement.onWindowResize();
+    nodeCapture.onWindowResize();
   },
 
   removeOverlay: function () {
 
-    utils.removeElement(captureElement.overlayElem);
+    utils.removeElement(nodeCapture.overlayElem);
 
-    var outlineElem = captureElement.outlineElem;
+    var outlineElem = nodeCapture.outlineElem;
     if (outlineElem) {
       utils.setProp(outlineElem, 'innerHTML', '');
       utils.setStyle(outlineElem, {
@@ -159,54 +169,54 @@ var captureElement = {
 
   bindEvents: function () {
 
-    document.body.addEventListener('mousemove', captureElement.onMouseMove, false);
-    document.body.addEventListener('mousedown', captureElement.onMouseDown, false);
-    document.body.addEventListener('keydown', captureElement.onKeyDown, false);
+    document.body.addEventListener('mousemove', nodeCapture.onMouseMove, false);
+    document.body.addEventListener('mousedown', nodeCapture.onMouseDown, false);
+    document.body.addEventListener('keydown', nodeCapture.onKeyDown, false);
 
-    window.addEventListener('resize', captureElement.onWindowResize, false);
+    window.addEventListener('resize', nodeCapture.onWindowResize, false);
   },
 
   unBindEvents: function () {
 
-    document.body.removeEventListener('mousemove', captureElement.onMouseMove, false);
-    document.body.removeEventListener('mousedown', captureElement.onMouseDown, false);
-    document.body.removeEventListener('keydown', captureElement.onKeyDown, false);
+    document.body.removeEventListener('mousemove', nodeCapture.onMouseMove, false);
+    document.body.removeEventListener('mousedown', nodeCapture.onMouseDown, false);
+    document.body.removeEventListener('keydown', nodeCapture.onKeyDown, false);
 
-    window.removeEventListener('resize', captureElement.onWindowResize, false);
+    window.removeEventListener('resize', nodeCapture.onWindowResize, false);
   },
 
   onWindowResize: function () {
 
     var docSize = utils.getDocumentSize();
 
-    captureElement.docWidth  = docSize.width;
-    captureElement.docHeight = docSize.height;
+    nodeCapture.docWidth  = docSize.width;
+    nodeCapture.docHeight = docSize.height;
 
-    utils.setStyle(captureElement.overlayElem, {
-      width: captureElement.docWidth + 'px',
-      height: captureElement.docHeight + 'px'
+    utils.setStyle(nodeCapture.overlayElem, {
+      width: nodeCapture.docWidth + 'px',
+      height: nodeCapture.docHeight + 'px'
     });
   },
 
   onMouseMove: function updateTarget(e) {
 
-    if (captureElement.targetElem !== e.target) {
+    if (nodeCapture.targetElem !== e.target) {
 
-      captureElement.targetElem = e.target;
+      nodeCapture.targetElem = e.target;
 
       var sw        = antLine.strokeWidth;
       var bounds    = utils.getBounds(e.target);
-      var docWidth  = captureElement.docWidth;
-      var docHeight = captureElement.docHeight;
+      var docWidth  = nodeCapture.docWidth;
+      var docHeight = nodeCapture.docHeight;
 
-      utils.setStyle(captureElement.outlineElem, {
+      utils.setStyle(nodeCapture.outlineElem, {
         top: Math.max(document.body.scrollTop + bounds.top - sw, 0) + 'px',
         left: Math.max(document.body.scrollLeft + bounds.left - sw, 0) + 'px',
         width: Math.min(docWidth, bounds.width + 2 * sw) + 'px',
         height: Math.min(docHeight, bounds.height + 2 * sw) + 'px'
       });
 
-      utils.setProp(captureElement.outlineElem, {
+      utils.setProp(nodeCapture.outlineElem, {
         innerHTML: antLine.create(docWidth, docHeight, bounds.width, bounds.height, true, true)
       });
     }
@@ -214,8 +224,8 @@ var captureElement = {
 
   onMouseDown: function doCapture() {
 
-    worker.start(captureElement.targetElem);
-    captureElement.clear();
+    worker.start(nodeCapture.targetElem);
+    nodeCapture.clear();
   },
 
   onKeyDown: function onShortCut(e) {
@@ -223,11 +233,11 @@ var captureElement = {
     switch (e.keyCode) {
 
       case 13: // enter
-        captureElement.onMouseDown();
+        nodeCapture.onMouseDown();
         break;
 
       case 27: // esc
-        captureElement.clear();
+        nodeCapture.clear();
         break;
 
       default:
@@ -236,53 +246,53 @@ var captureElement = {
   }
 };
 
-var captureRegion = {
+var cropCapture = {
 
   docWidth: 0,
   docHeight: 0,
 
   start: function () {
 
-    captureRegion.ensureCropElements();
+    cropCapture.ensureCropElements();
 
-    window.addEventListener('resize', captureRegion.onWindowResize, false);
-    document.body.addEventListener('keydown', captureRegion.onKeyDown, false);
+    window.addEventListener('resize', cropCapture.onWindowResize, false);
+    document.body.addEventListener('keydown', cropCapture.onKeyDown, false);
 
-    captureRegion.bindCrossLine();
-    captureRegion.onWindowResize();
+    cropCapture.bindCrossLine();
+    cropCapture.onWindowResize();
   },
 
   clear: function () {
 
-    captureRegion.clearCrossLine();
-    captureRegion.clearController();
-    captureRegion.clearCrop();
+    cropCapture.clearCrossLine();
+    cropCapture.clearController();
+    cropCapture.clearCrop();
 
     antLine.clearStyle();
 
-    window.removeEventListener('resize', captureRegion.onWindowResize, false);
-    document.body.removeEventListener('keydown', captureRegion.onKeyDown, false);
+    window.removeEventListener('resize', cropCapture.onWindowResize, false);
+    document.body.removeEventListener('keydown', cropCapture.onKeyDown, false);
   },
 
   captureCrop: function () {
 
-    worker.start(captureRegion.cropCenterElem)
-    captureRegion.clear();
+    worker.start(cropCapture.cropCenterElem)
+    cropCapture.clear();
   },
 
   onWindowResize: function () {
 
     var dSize = utils.getDocumentSize();
 
-    captureRegion.docWidth  = dSize.width;
-    captureRegion.docHeight = dSize.height;
+    cropCapture.docWidth  = dSize.width;
+    cropCapture.docHeight = dSize.height;
 
-    utils.setStyle(captureRegion.cropWrapElem, {
+    utils.setStyle(cropCapture.cropWrapElem, {
       width: dSize.width + 'px',
       height: dSize.height + 'px'
     });
 
-    captureRegion.updateCropElements();
+    cropCapture.updateCropElements();
   },
 
   onKeyDown: function (e) {
@@ -291,10 +301,10 @@ var captureRegion = {
 
       case 13: // enter
 
-        var bounds = captureRegion.getCropBounds();
+        var bounds = cropCapture.getCropBounds();
         if (bounds.width > 0 && bounds.height > 0) {
 
-          captureRegion.captureCrop();
+          cropCapture.captureCrop();
 
         } else {
 
@@ -303,15 +313,15 @@ var captureRegion = {
 
           antLine.ensureStyle();
 
-          captureRegion.createDemoCrop(x, y);
-          captureRegion.clearCrossLine();
-          captureRegion.bindCenter();
-          captureRegion.bindController();
+          cropCapture.createDemoCrop(x, y);
+          cropCapture.clearCrossLine();
+          cropCapture.bindCenter();
+          cropCapture.bindController();
         }
         break;
 
       case 27: // esc
-        captureRegion.clear();
+        cropCapture.clear();
         break;
 
       default:
@@ -336,11 +346,11 @@ var captureRegion = {
 
   ensureCropElements: function () {
 
-    var cropWrapElem = captureRegion.cropWrapElem;
+    var cropWrapElem = cropCapture.cropWrapElem;
 
     if (!cropWrapElem) {
 
-      cropWrapElem = captureRegion.cropWrapElem = utils.createDiv();
+      cropWrapElem = cropCapture.cropWrapElem = utils.createDiv();
 
       utils.setStyle(cropWrapElem, {
         position: 'absolute',
@@ -354,12 +364,12 @@ var captureRegion = {
       utils.setZIndex(cropWrapElem);
 
 
-      var cropTopElem = captureRegion.cropTopElem = utils.createDiv();
-      var cropRightElem = captureRegion.cropRightElem = utils.createDiv();
-      var cropBottomElem = captureRegion.cropBottomElem = utils.createDiv();
-      var cropLeftElem = captureRegion.cropLeftElem = utils.createDiv();
-      var cropCenterElem = captureRegion.cropCenterElem = utils.createDiv();
-      var cropAntLineElem = captureRegion.cropAntLineElem = utils.createDiv();
+      var cropTopElem = cropCapture.cropTopElem = utils.createDiv();
+      var cropRightElem = cropCapture.cropRightElem = utils.createDiv();
+      var cropBottomElem = cropCapture.cropBottomElem = utils.createDiv();
+      var cropLeftElem = cropCapture.cropLeftElem = utils.createDiv();
+      var cropCenterElem = cropCapture.cropCenterElem = utils.createDiv();
+      var cropAntLineElem = cropCapture.cropAntLineElem = utils.createDiv();
 
       [
         cropTopElem,
@@ -371,7 +381,7 @@ var captureRegion = {
         utils.setStyle(elem, {
           position: 'absolute',
           cursor: 'auto',
-          backgroundColor: captureRegion.bgColor
+          backgroundColor: cropCapture.bgColor
         })
 
         cropWrapElem.appendChild(elem);
@@ -385,7 +395,7 @@ var captureRegion = {
       utils.setStyle(cropCenterElem, {
         cursor: 'move',
         boxSizing: 'border-box',
-        backgroundColor: captureRegion.bgTransparent
+        backgroundColor: cropCapture.bgTransparent
       });
 
       cropCenterElem.appendChild(cropAntLineElem);
@@ -398,84 +408,84 @@ var captureRegion = {
 
   updateCropElements: function (bounds) {
 
-    var bounds = bounds || captureRegion.getCropBounds();
+    var bounds = bounds || cropCapture.getCropBounds();
 
-    var docWidth  = captureRegion.docWidth;
-    var docHeight = captureRegion.docHeight;
+    var docWidth  = cropCapture.docWidth;
+    var docHeight = cropCapture.docHeight;
 
     if (bounds.width > 0 && bounds.height > 0) {
 
-      utils.setStyle(captureRegion.cropWrapElem, {
-        backgroundColor: captureRegion.bgTransparent
+      utils.setStyle(cropCapture.cropWrapElem, {
+        backgroundColor: cropCapture.bgTransparent
       });
 
-      utils.setStyle(captureRegion.cropTopElem, {
+      utils.setStyle(cropCapture.cropTopElem, {
         width: bounds.left + bounds.width + 'px',
         height: bounds.top + 'px'
       });
 
-      utils.setStyle(captureRegion.cropRightElem, {
+      utils.setStyle(cropCapture.cropRightElem, {
         width: docWidth - bounds.left - bounds.width + 'px',
         height: bounds.top + bounds.height + 'px'
       });
 
-      utils.setStyle(captureRegion.cropBottomElem, {
+      utils.setStyle(cropCapture.cropBottomElem, {
         width: docWidth - bounds.left + 'px',
         height: docHeight - bounds.top - bounds.height + 'px'
       });
 
-      utils.setStyle(captureRegion.cropLeftElem, {
+      utils.setStyle(cropCapture.cropLeftElem, {
         width: bounds.left + 'px',
         height: docHeight - bounds.top + 'px'
       });
 
-      utils.setStyle(captureRegion.cropCenterElem, {
+      utils.setStyle(cropCapture.cropCenterElem, {
         top: bounds.top + 'px',
         left: bounds.left + 'px',
         width: bounds.width + 'px',
         height: bounds.height + 'px'
       });
 
-      captureRegion.cropAntLineElem.innerHTML = antLine.create(docWidth, docHeight, bounds.width, bounds.height, false, false);
+      cropCapture.cropAntLineElem.innerHTML = antLine.create(docWidth, docHeight, bounds.width, bounds.height, false, false);
 
-      if (captureRegion.resizeWrap) {
-        captureRegion.resizeWrap.style.display = '';
+      if (cropCapture.resizeWrap) {
+        cropCapture.resizeWrap.style.display = '';
       }
 
     } else {
 
-      utils.setStyle(captureRegion.cropWrapElem, {
-        backgroundColor: captureRegion.bgColor
+      utils.setStyle(cropCapture.cropWrapElem, {
+        backgroundColor: cropCapture.bgColor
       });
 
-      captureRegion.cropTopElem.style.width  = 0;
-      captureRegion.cropTopElem.style.height = 0;
+      cropCapture.cropTopElem.style.width  = 0;
+      cropCapture.cropTopElem.style.height = 0;
 
-      captureRegion.cropRightElem.style.width  = 0;
-      captureRegion.cropRightElem.style.height = 0;
+      cropCapture.cropRightElem.style.width  = 0;
+      cropCapture.cropRightElem.style.height = 0;
 
-      captureRegion.cropBottomElem.style.width  = 0;
-      captureRegion.cropBottomElem.style.height = 0;
+      cropCapture.cropBottomElem.style.width  = 0;
+      cropCapture.cropBottomElem.style.height = 0;
 
-      captureRegion.cropLeftElem.style.width  = 0;
-      captureRegion.cropLeftElem.style.height = 0;
+      cropCapture.cropLeftElem.style.width  = 0;
+      cropCapture.cropLeftElem.style.height = 0;
 
-      captureRegion.cropCenterElem.style.top    = 0;
-      captureRegion.cropCenterElem.style.left   = 0;
-      captureRegion.cropCenterElem.style.width  = 0;
-      captureRegion.cropCenterElem.style.height = 0;
+      cropCapture.cropCenterElem.style.top    = 0;
+      cropCapture.cropCenterElem.style.left   = 0;
+      cropCapture.cropCenterElem.style.width  = 0;
+      cropCapture.cropCenterElem.style.height = 0;
 
-      captureRegion.cropAntLineElem.innerHTML = '';
+      cropCapture.cropAntLineElem.innerHTML = '';
 
-      if (captureRegion.resizeWrap) {
-        captureRegion.resizeWrap.style.display = 'none';
+      if (cropCapture.resizeWrap) {
+        cropCapture.resizeWrap.style.display = 'none';
       }
     }
   },
 
   getCropBounds: function () {
 
-    var cropCenterElem = captureRegion.cropCenterElem;
+    var cropCenterElem = cropCapture.cropCenterElem;
 
     return {
       top: parseInt(cropCenterElem.style.top, 10),
@@ -487,16 +497,16 @@ var captureRegion = {
 
   clearCrop: function () {
 
-    utils.removeElement(captureRegion.cropWrapElem);
+    utils.removeElement(cropCapture.cropWrapElem);
 
-    captureRegion.updateCropElements({
+    cropCapture.updateCropElements({
       left: 0,
       top: 0,
       width: 0,
       height: 0
     });
 
-    captureRegion.unBindCenter();
+    cropCapture.unBindCenter();
   },
 
 
@@ -510,15 +520,15 @@ var captureRegion = {
 
   ensureCrossLine: function () {
 
-    var crossWrapElem = captureRegion.crossWrapElem;
+    var crossWrapElem = cropCapture.crossWrapElem;
 
     if (!crossWrapElem) {
 
-      crossWrapElem = captureRegion.crossWrapElem = utils.createDiv();
+      crossWrapElem = cropCapture.crossWrapElem = utils.createDiv();
 
-      var crossPosElem = captureRegion.crossPosElem = utils.createDiv();
-      var crossVElem = captureRegion.crossVElem = utils.createDiv();
-      var crossHElem = captureRegion.crossHElem = utils.createDiv();
+      var crossPosElem = cropCapture.crossPosElem = utils.createDiv();
+      var crossVElem = cropCapture.crossVElem = utils.createDiv();
+      var crossHElem = cropCapture.crossHElem = utils.createDiv();
 
       utils.setStyle(crossVElem, {
         position: 'absolute',
@@ -528,7 +538,7 @@ var captureRegion = {
         margin: 0,
         width: '1px',
         boxSizing: 'border-box',
-        backgroundColor: captureRegion.crossColor
+        backgroundColor: cropCapture.crossColor
       });
 
       utils.setStyle(crossHElem, {
@@ -539,7 +549,7 @@ var captureRegion = {
         margin: 0,
         height: '1px',
         boxSizing: 'border-box',
-        backgroundColor: captureRegion.crossColor
+        backgroundColor: cropCapture.crossColor
       });
 
       utils.setStyle(crossPosElem, {
@@ -551,7 +561,7 @@ var captureRegion = {
         height: '26px',
         lineHeight: '26px',
         borderRadius: '13px',
-        color: captureRegion.crossColor,
+        color: cropCapture.crossColor,
         backgroundColor: 'rgba(0,0,0,0.8)'
       });
 
@@ -561,48 +571,48 @@ var captureRegion = {
     }
 
     if (!crossWrapElem.parentNode) {
-      captureRegion.cropWrapElem.appendChild(crossWrapElem);
+      cropCapture.cropWrapElem.appendChild(crossWrapElem);
     }
   },
 
   clearCrossLine: function () {
 
-    captureRegion.clearScrollTimer();
+    cropCapture.clearScrollTimer();
 
-    captureRegion.crossVElem.style.left  = '-1px';
-    captureRegion.crossHElem.style.top   = '-1px';
-    captureRegion.crossPosElem.innerText = '';
+    cropCapture.crossVElem.style.left  = '-1px';
+    cropCapture.crossHElem.style.top   = '-1px';
+    cropCapture.crossPosElem.innerText = '';
 
-    utils.removeElement(captureRegion.crossWrapElem);
-    captureRegion.unBindCrossLine();
+    utils.removeElement(cropCapture.crossWrapElem);
+    cropCapture.unBindCrossLine();
   },
 
   bindCrossLine: function () {
 
-    document.body.addEventListener('mousemove', captureRegion.updateCrossLine, false);
-    document.body.addEventListener('mousedown', captureRegion.onCropMouseDown, false);
+    document.body.addEventListener('mousemove', cropCapture.updateCrossLine, false);
+    document.body.addEventListener('mousedown', cropCapture.onCropMouseDown, false);
   },
 
   unBindCrossLine: function () {
 
-    document.body.removeEventListener('mousemove', captureRegion.updateCrossLine, false);
-    document.body.removeEventListener('mousedown', captureRegion.onCropMouseDown, false);
+    document.body.removeEventListener('mousemove', cropCapture.updateCrossLine, false);
+    document.body.removeEventListener('mousedown', cropCapture.onCropMouseDown, false);
   },
 
   updateCrossLine: function (e) {
 
-    captureRegion.ensureCrossLine();
-    captureRegion.clearScrollTimer();
-    captureRegion.placeCrossLine(e.pageX, e.pageY);
-    captureRegion.autoScrollCrossLine(e.pageX, e.pageY);
+    cropCapture.ensureCrossLine();
+    cropCapture.clearScrollTimer();
+    cropCapture.placeCrossLine(e.pageX, e.pageY);
+    cropCapture.autoScrollCrossLine(e.pageX, e.pageY);
   },
 
   placeCrossLine: function (pageX, pageY) {
 
-    captureRegion.crossVElem.style.left = Math.max(pageX - 1, 0) + 'px';
-    captureRegion.crossHElem.style.top  = Math.max(pageY - 1, 0) + 'px';
+    cropCapture.crossVElem.style.left = Math.max(pageX - 1, 0) + 'px';
+    cropCapture.crossHElem.style.top  = Math.max(pageY - 1, 0) + 'px';
 
-    var crossPosElem = captureRegion.crossPosElem;
+    var crossPosElem = cropCapture.crossPosElem;
 
     crossPosElem.innerText = pageX + ' x ' + pageY;
 
@@ -641,8 +651,8 @@ var captureRegion = {
       var scrollTop  = body.scrollTop;
       var scrollLeft = body.scrollLeft;
 
-      var scrollDist  = captureRegion.scrollDist;
-      var scrollSense = captureRegion.scrollSense;
+      var scrollDist  = cropCapture.scrollDist;
+      var scrollSense = cropCapture.scrollSense;
 
       var scrolled = false;
 
@@ -684,9 +694,9 @@ var captureRegion = {
         body.scrollLeft = scrollLeft;
         body.scrollTop  = scrollTop;
 
-        captureRegion.placeCrossLine(pageX, pageY);
-        captureRegion.setupScrollTimer(function () {
-          captureRegion.autoScrollCrossLine(pageX, pageY);
+        cropCapture.placeCrossLine(pageX, pageY);
+        cropCapture.setupScrollTimer(function () {
+          cropCapture.autoScrollCrossLine(pageX, pageY);
         });
       }
     }
@@ -700,14 +710,14 @@ var captureRegion = {
 
   setupMouseDownTimer: function (callback) {
 
-    captureRegion.mouseDownTimer = setTimeout(callback, captureRegion.mouseDownDelay);
+    cropCapture.mouseDownTimer = setTimeout(callback, cropCapture.mouseDownDelay);
   },
 
   clearMouseDownTimer: function () {
 
-    if (captureRegion.mouseDownTimer) {
-      clearTimeout(captureRegion.mouseDownTimer);
-      captureRegion.mouseDownTimer = 0;
+    if (cropCapture.mouseDownTimer) {
+      clearTimeout(cropCapture.mouseDownTimer);
+      cropCapture.mouseDownTimer = 0;
     }
   },
 
@@ -722,18 +732,18 @@ var captureRegion = {
 
     e.preventDefault();
 
-    captureRegion.clearCrossLine();
+    cropCapture.clearCrossLine();
 
-    document.body.addEventListener('mousemove', captureRegion.onCropMouseMove, false);
-    document.body.addEventListener('mouseup', captureRegion.onCropMouseUp, false);
+    document.body.addEventListener('mousemove', cropCapture.onCropMouseMove, false);
+    document.body.addEventListener('mouseup', cropCapture.onCropMouseUp, false);
 
-    captureRegion.startX = e.pageX;
-    captureRegion.startY = e.pageY;
+    cropCapture.startX = e.pageX;
+    cropCapture.startY = e.pageY;
 
-    captureRegion.isMouseDown = false;
+    cropCapture.isMouseDown = false;
 
-    captureRegion.setupMouseDownTimer(function () {
-      captureRegion.isMouseDown = true;
+    cropCapture.setupMouseDownTimer(function () {
+      cropCapture.isMouseDown = true;
     });
   },
 
@@ -741,46 +751,46 @@ var captureRegion = {
 
     e.preventDefault();
 
-    captureRegion.clearScrollTimer();
-    captureRegion.clearMouseDownTimer();
-    captureRegion.isMouseDown = true;
+    cropCapture.clearScrollTimer();
+    cropCapture.clearMouseDownTimer();
+    cropCapture.isMouseDown = true;
 
     var pageX  = e.pageX;
     var pageY  = e.pageY;
-    var startX = captureRegion.startX;
-    var startY = captureRegion.startY;
+    var startX = cropCapture.startX;
+    var startY = cropCapture.startY;
 
-    captureRegion.updateCropElements({
+    cropCapture.updateCropElements({
       top: Math.min(pageY, startY),
       left: Math.min(pageX, startX),
       width: Math.abs(pageX - startX),
       height: Math.abs(pageY - startY),
     });
 
-    captureRegion.autoScrollCrop(pageX, pageY);
+    cropCapture.autoScrollCrop(pageX, pageY);
   },
 
   onCropMouseUp: function (e) {
 
-    captureRegion.clearScrollTimer();
+    cropCapture.clearScrollTimer();
 
-    document.body.removeEventListener('mousemove', captureRegion.onCropMouseMove, false);
-    document.body.removeEventListener('mouseup', captureRegion.onCropMouseUp, false);
+    document.body.removeEventListener('mousemove', cropCapture.onCropMouseMove, false);
+    document.body.removeEventListener('mouseup', cropCapture.onCropMouseUp, false);
 
-    if (!captureRegion.isMouseDown) {
-      captureRegion.clearMouseDownTimer();
+    if (!cropCapture.isMouseDown) {
+      cropCapture.clearMouseDownTimer();
       // create a crop when click
-      captureRegion.createDemoCrop(e.pageX, e.pageY);
+      cropCapture.createDemoCrop(e.pageX, e.pageY);
     }
 
-    var bounds = captureRegion.getCropBounds();
+    var bounds = cropCapture.getCropBounds();
     if (bounds.width && bounds.height) {
       antLine.ensureStyle();
-      captureRegion.bindCenter();
-      captureRegion.bindController();
+      cropCapture.bindCenter();
+      cropCapture.bindController();
     } else {
-      captureRegion.bindCrossLine();
-      captureRegion.updateCrossLine(e);
+      cropCapture.bindCrossLine();
+      cropCapture.updateCrossLine(e);
     }
   },
 
@@ -801,14 +811,14 @@ var captureRegion = {
 
       var scrolled = false;
 
-      var bounds = captureRegion.getCropBounds();
+      var bounds = cropCapture.getCropBounds();
       var top    = bounds.top;
       var left   = bounds.left;
       var width  = bounds.width;
       var height = bounds.height;
 
-      var scrollDist  = captureRegion.scrollDist;
-      var scrollSense = captureRegion.scrollSense;
+      var scrollDist  = cropCapture.scrollDist;
+      var scrollSense = cropCapture.scrollSense;
 
       if (scrollLeft > 0 && pageX > 0 && pageX - scrollSense <= scrollLeft) {
 
@@ -854,15 +864,15 @@ var captureRegion = {
         body.scrollLeft = scrollLeft;
         body.scrollTop  = scrollTop;
 
-        captureRegion.updateCropElements({
+        cropCapture.updateCropElements({
           top: top,
           left: left,
           width: width,
           height: height
         });
 
-        captureRegion.setupScrollTimer(function () {
-          captureRegion.autoScrollCrop(pageX, pageY);
+        cropCapture.setupScrollTimer(function () {
+          cropCapture.autoScrollCrop(pageX, pageY);
         });
       }
     }
@@ -877,7 +887,7 @@ var captureRegion = {
     var clientWidth  = document.documentElement.clientWidth;
     var clientHeight = document.documentElement.clientHeight;
 
-    captureRegion.updateCropElements({
+    cropCapture.updateCropElements({
       top: utils.clamp(y - size / 2, scrollTop, scrollTop + clientHeight - size),
       left: utils.clamp(x - size / 2, scrollLeft, scrollLeft + clientWidth - size),
       width: size,
@@ -914,24 +924,24 @@ var captureRegion = {
 
   ensureController: function () {
 
-    var resizeWrap = captureRegion.resizeWrap;
+    var resizeWrap = cropCapture.resizeWrap;
 
     if (!resizeWrap) {
 
-      resizeWrap = captureRegion.resizeWrap = utils.createDiv();
+      resizeWrap = cropCapture.resizeWrap = utils.createDiv();
 
-      var btnResizeNW = captureRegion.btnResizeNW = utils.createDiv();
-      var btnResizeN = captureRegion.btnResizeN = utils.createDiv();
-      var btnResizeNE = captureRegion.btnResizeNE = utils.createDiv();
-      var btnResizeW = captureRegion.btnResizeW = utils.createDiv();
-      var btnResizeE = captureRegion.btnResizeE = utils.createDiv();
-      var btnResizeSW = captureRegion.btnResizeSW = utils.createDiv();
-      var btnResizeS = captureRegion.btnResizeS = utils.createDiv();
-      var btnResizeSE = captureRegion.btnResizeSE = utils.createDiv();
-      var btnResizeTop = captureRegion.btnResizeTop = utils.createDiv();
-      var btnResizeRight = captureRegion.btnResizeRight = utils.createDiv();
-      var btnResizeBottom = captureRegion.btnResizeBottom = utils.createDiv();
-      var btnResizeLeft = captureRegion.btnResizeLeft = utils.createDiv();
+      var btnResizeNW = cropCapture.btnResizeNW = utils.createDiv();
+      var btnResizeN = cropCapture.btnResizeN = utils.createDiv();
+      var btnResizeNE = cropCapture.btnResizeNE = utils.createDiv();
+      var btnResizeW = cropCapture.btnResizeW = utils.createDiv();
+      var btnResizeE = cropCapture.btnResizeE = utils.createDiv();
+      var btnResizeSW = cropCapture.btnResizeSW = utils.createDiv();
+      var btnResizeS = cropCapture.btnResizeS = utils.createDiv();
+      var btnResizeSE = cropCapture.btnResizeSE = utils.createDiv();
+      var btnResizeTop = cropCapture.btnResizeTop = utils.createDiv();
+      var btnResizeRight = cropCapture.btnResizeRight = utils.createDiv();
+      var btnResizeBottom = cropCapture.btnResizeBottom = utils.createDiv();
+      var btnResizeLeft = cropCapture.btnResizeLeft = utils.createDiv();
 
       [
         btnResizeTop,
@@ -973,7 +983,7 @@ var captureRegion = {
       innerElem.style.borderRadius    = '11px';
       innerElem.style.boxSizing       = 'border-box';
       innerElem.style.boxShadow       = '0 0 6px 0px rgba(255,255,255,0.6)';
-      innerElem.style.backgroundColor = captureRegion.btnResizeColor2;
+      innerElem.style.backgroundColor = cropCapture.btnResizeColor2;
 
       [
         btnResizeNW, btnResizeN, btnResizeNE,
@@ -984,7 +994,7 @@ var captureRegion = {
         elem.style.width        = '19px';
         elem.style.height       = '19px';
         elem.style.borderRadius = '19px';
-        elem.style.border       = '3px solid ' + captureRegion.btnResizeColor1;
+        elem.style.border       = '3px solid ' + cropCapture.btnResizeColor1;
         elem.style.boxSizing    = 'border-box';
 
         elem.appendChild(innerElem.cloneNode(false));
@@ -1034,76 +1044,76 @@ var captureRegion = {
       btnResizeSE.style.right  = '-9px';
       btnResizeSE.style.bottom = '-9px';
 
-      captureRegion.handleNWMouseDown = captureRegion.onControllerMouseDown.bind(null, 1);
-      captureRegion.handleNMouseDown  = captureRegion.onControllerMouseDown.bind(null, 2);
-      captureRegion.handleNEMouseDown = captureRegion.onControllerMouseDown.bind(null, 3);
-      captureRegion.handleEMouseDown  = captureRegion.onControllerMouseDown.bind(null, 4);
-      captureRegion.handleSEMouseDown = captureRegion.onControllerMouseDown.bind(null, 5);
-      captureRegion.handleSMouseDown  = captureRegion.onControllerMouseDown.bind(null, 6);
-      captureRegion.handleSWMouseDown = captureRegion.onControllerMouseDown.bind(null, 7);
-      captureRegion.handleWMouseDown  = captureRegion.onControllerMouseDown.bind(null, 8);
+      cropCapture.handleNWMouseDown = cropCapture.onControllerMouseDown.bind(null, 1);
+      cropCapture.handleNMouseDown  = cropCapture.onControllerMouseDown.bind(null, 2);
+      cropCapture.handleNEMouseDown = cropCapture.onControllerMouseDown.bind(null, 3);
+      cropCapture.handleEMouseDown  = cropCapture.onControllerMouseDown.bind(null, 4);
+      cropCapture.handleSEMouseDown = cropCapture.onControllerMouseDown.bind(null, 5);
+      cropCapture.handleSMouseDown  = cropCapture.onControllerMouseDown.bind(null, 6);
+      cropCapture.handleSWMouseDown = cropCapture.onControllerMouseDown.bind(null, 7);
+      cropCapture.handleWMouseDown  = cropCapture.onControllerMouseDown.bind(null, 8);
     }
 
     if (!resizeWrap.parentNode) {
-      captureRegion.cropCenterElem.appendChild(resizeWrap);
+      cropCapture.cropCenterElem.appendChild(resizeWrap);
     }
   },
 
   bindCenter: function () {
 
-    captureRegion.cropCenterElem
-      .addEventListener('mousedown', captureRegion.onCenterMouseDown, false);
+    cropCapture.cropCenterElem
+      .addEventListener('mousedown', cropCapture.onCenterMouseDown, false);
   },
 
   unBindCenter: function () {
 
-    captureRegion.cropCenterElem
-      .removeEventListener('mousedown', captureRegion.onCenterMouseDown, false);
+    cropCapture.cropCenterElem
+      .removeEventListener('mousedown', cropCapture.onCenterMouseDown, false);
   },
 
   bindController: function () {
 
-    captureRegion.ensureController();
+    cropCapture.ensureController();
 
-    captureRegion.btnResizeNW.addEventListener('mousedown', captureRegion.handleNWMouseDown, false);
-    captureRegion.btnResizeN.addEventListener('mousedown', captureRegion.handleNMouseDown, false);
-    captureRegion.btnResizeNE.addEventListener('mousedown', captureRegion.handleNEMouseDown, false);
-    captureRegion.btnResizeE.addEventListener('mousedown', captureRegion.handleEMouseDown, false);
-    captureRegion.btnResizeSE.addEventListener('mousedown', captureRegion.handleSEMouseDown, false);
-    captureRegion.btnResizeS.addEventListener('mousedown', captureRegion.handleSMouseDown, false);
-    captureRegion.btnResizeSW.addEventListener('mousedown', captureRegion.handleSWMouseDown, false);
-    captureRegion.btnResizeW.addEventListener('mousedown', captureRegion.handleWMouseDown, false);
+    cropCapture.btnResizeNW.addEventListener('mousedown', cropCapture.handleNWMouseDown, false);
+    cropCapture.btnResizeN.addEventListener('mousedown', cropCapture.handleNMouseDown, false);
+    cropCapture.btnResizeNE.addEventListener('mousedown', cropCapture.handleNEMouseDown, false);
+    cropCapture.btnResizeE.addEventListener('mousedown', cropCapture.handleEMouseDown, false);
+    cropCapture.btnResizeSE.addEventListener('mousedown', cropCapture.handleSEMouseDown, false);
+    cropCapture.btnResizeS.addEventListener('mousedown', cropCapture.handleSMouseDown, false);
+    cropCapture.btnResizeSW.addEventListener('mousedown', cropCapture.handleSWMouseDown, false);
+    cropCapture.btnResizeW.addEventListener('mousedown', cropCapture.handleWMouseDown, false);
 
-    captureRegion.btnResizeTop.addEventListener('mousedown', captureRegion.handleNMouseDown, false);
-    captureRegion.btnResizeRight.addEventListener('mousedown', captureRegion.handleEMouseDown, false);
-    captureRegion.btnResizeBottom.addEventListener('mousedown', captureRegion.handleSMouseDown, false);
-    captureRegion.btnResizeLeft.addEventListener('mousedown', captureRegion.handleWMouseDown, false);
+    cropCapture.btnResizeTop.addEventListener('mousedown', cropCapture.handleNMouseDown, false);
+    cropCapture.btnResizeRight.addEventListener('mousedown', cropCapture.handleEMouseDown, false);
+    cropCapture.btnResizeBottom.addEventListener('mousedown', cropCapture.handleSMouseDown, false);
+    cropCapture.btnResizeLeft.addEventListener('mousedown', cropCapture.handleWMouseDown, false);
   },
 
   unBindController: function () {
 
-    if (captureRegion.resizeWrap) {
-      captureRegion.btnResizeNW.removeEventListener('mousedown', captureRegion.handleNWMouseDown, false);
-      captureRegion.btnResizeN.removeEventListener('mousedown', captureRegion.handleNMouseDown, false);
-      captureRegion.btnResizeNE.removeEventListener('mousedown', captureRegion.handleNEMouseDown, false);
-      captureRegion.btnResizeE.removeEventListener('mousedown', captureRegion.handleEMouseDown, false);
-      captureRegion.btnResizeSE.removeEventListener('mousedown', captureRegion.handleSEMouseDown, false);
-      captureRegion.btnResizeS.removeEventListener('mousedown', captureRegion.handleSMouseDown, false);
-      captureRegion.btnResizeSW.removeEventListener('mousedown', captureRegion.handleSWMouseDown, false);
-      captureRegion.btnResizeW.removeEventListener('mousedown', captureRegion.handleWMouseDown, false);
+    if (cropCapture.resizeWrap) {
+      cropCapture.btnResizeNW.removeEventListener('mousedown', cropCapture.handleNWMouseDown, false);
+      cropCapture.btnResizeN.removeEventListener('mousedown', cropCapture.handleNMouseDown, false);
+      cropCapture.btnResizeNE.removeEventListener('mousedown', cropCapture.handleNEMouseDown, false);
+      cropCapture.btnResizeE.removeEventListener('mousedown', cropCapture.handleEMouseDown, false);
+      cropCapture.btnResizeSE.removeEventListener('mousedown', cropCapture.handleSEMouseDown, false);
+      cropCapture.btnResizeS.removeEventListener('mousedown', cropCapture.handleSMouseDown, false);
+      cropCapture.btnResizeSW.removeEventListener('mousedown', cropCapture.handleSWMouseDown, false);
+      cropCapture.btnResizeW.removeEventListener('mousedown', cropCapture.handleWMouseDown, false);
 
-      captureRegion.btnResizeTop.removeEventListener('mousedown', captureRegion.handleNMouseDown, false);
-      captureRegion.btnResizeRight.removeEventListener('mousedown', captureRegion.handleEMouseDown, false);
-      captureRegion.btnResizeBottom.removeEventListener('mousedown', captureRegion.handleSMouseDown, false);
-      captureRegion.btnResizeLeft.removeEventListener('mousedown', captureRegion.handleWMouseDown, false);
+      cropCapture.btnResizeTop.removeEventListener('mousedown', cropCapture.handleNMouseDown, false);
+      cropCapture.btnResizeRight.removeEventListener('mousedown', cropCapture.handleEMouseDown, false);
+      cropCapture.btnResizeBottom.removeEventListener('mousedown', cropCapture.handleSMouseDown, false);
+      cropCapture.btnResizeLeft.removeEventListener('mousedown', cropCapture.handleWMouseDown, false);
 
     }
   },
 
   clearController: function () {
 
-    utils.removeElement(captureRegion.resizeWrap);
-    captureRegion.unBindController();
+    utils.removeElement(cropCapture.resizeWrap);
+    cropCapture.unBindController();
   },
 
 
@@ -1114,26 +1124,26 @@ var captureRegion = {
 
     e.preventDefault();
 
-    document.body.addEventListener('mousemove', captureRegion.onCenterMouseMove, false);
-    document.body.addEventListener('mouseup', captureRegion.onCenterMouseUp, false);
+    document.body.addEventListener('mousemove', cropCapture.onCenterMouseMove, false);
+    document.body.addEventListener('mouseup', cropCapture.onCenterMouseUp, false);
 
-    captureRegion.startX = e.pageX;
-    captureRegion.startY = e.pageY;
-    captureRegion.lastX  = e.pageX;
-    captureRegion.lastY  = e.pageY;
+    cropCapture.startX = e.pageX;
+    cropCapture.startY = e.pageY;
+    cropCapture.lastX  = e.pageX;
+    cropCapture.lastY  = e.pageY;
 
-    captureRegion.cropBounds = captureRegion.getCropBounds();
+    cropCapture.cropBounds = cropCapture.getCropBounds();
 
 
     // mock double click
     // -----------------
 
-    captureRegion.isMouseDown = false;
+    cropCapture.isMouseDown = false;
 
-    captureRegion.clearMouseDownTimer();
-    captureRegion.setupMouseDownTimer(function () {
-      captureRegion.isMouseDown = true;
-      captureRegion.clickCount  = 0;
+    cropCapture.clearMouseDownTimer();
+    cropCapture.setupMouseDownTimer(function () {
+      cropCapture.isMouseDown = true;
+      cropCapture.clickCount  = 0;
     });
   },
 
@@ -1141,33 +1151,33 @@ var captureRegion = {
 
     e.preventDefault();
 
-    captureRegion.isMouseDown = true;
-    captureRegion.clickCount  = 0;
+    cropCapture.isMouseDown = true;
+    cropCapture.clickCount  = 0;
 
-    captureRegion.clearScrollTimer();
-    captureRegion.clearMouseDownTimer();
+    cropCapture.clearScrollTimer();
+    cropCapture.clearMouseDownTimer();
 
     var docElem    = document.documentElement;
-    var cropBounds = captureRegion.cropBounds;
+    var cropBounds = cropCapture.cropBounds;
 
     var bounds = {
       width: cropBounds.width,
       height: cropBounds.height
     };
 
-    var left = cropBounds.left + e.pageX - captureRegion.startX;
-    var top  = cropBounds.top + e.pageY - captureRegion.startY;
+    var left = cropBounds.left + e.pageX - cropCapture.startX;
+    var top  = cropBounds.top + e.pageY - cropCapture.startY;
 
     bounds.left = utils.clamp(left, 0, docElem.scrollWidth - cropBounds.width);
     bounds.top  = utils.clamp(top, 0, docElem.scrollHeight - cropBounds.height);
 
-    captureRegion.updateCropElements(bounds);
+    cropCapture.updateCropElements(bounds);
 
-    var dx = e.pageX - captureRegion.lastX;
-    var dy = e.pageY - captureRegion.lastY;
+    var dx = e.pageX - cropCapture.lastX;
+    var dy = e.pageY - cropCapture.lastY;
 
-    captureRegion.lastX = e.pageX;
-    captureRegion.lastY = e.pageY;
+    cropCapture.lastX = e.pageX;
+    cropCapture.lastY = e.pageY;
 
     // top   : 1
     // right : 2
@@ -1181,7 +1191,7 @@ var captureRegion = {
       direction = dy > 0 ? 3 : 1;
     }
 
-    captureRegion.autoScrollMovement(direction);
+    cropCapture.autoScrollMovement(direction);
   },
 
   onCenterMouseUp: function () {
@@ -1189,27 +1199,27 @@ var captureRegion = {
     // mock double click
     // -----------------
 
-    if (!captureRegion.isMouseDown) {
-      captureRegion.clickCount++;
-      captureRegion.clearMouseDownTimer();
+    if (!cropCapture.isMouseDown) {
+      cropCapture.clickCount++;
+      cropCapture.clearMouseDownTimer();
     }
 
-    if (captureRegion.clickCount === 1) {
-      captureRegion.setupMouseDownTimer(function () {
-        captureRegion.isMouseDown = false;
-        captureRegion.clickCount  = 0;
+    if (cropCapture.clickCount === 1) {
+      cropCapture.setupMouseDownTimer(function () {
+        cropCapture.isMouseDown = false;
+        cropCapture.clickCount  = 0;
       });
     }
 
-    if (captureRegion.clickCount === 2) {
-      captureRegion.clickCount = 0;
-      captureRegion.captureCrop();
+    if (cropCapture.clickCount === 2) {
+      cropCapture.clickCount = 0;
+      cropCapture.captureCrop();
     } else {
-      captureRegion.clearScrollTimer();
+      cropCapture.clearScrollTimer();
     }
 
-    document.body.removeEventListener('mousemove', captureRegion.onCenterMouseMove, false);
-    document.body.removeEventListener('mouseup', captureRegion.onCenterMouseUp, false);
+    document.body.removeEventListener('mousemove', cropCapture.onCenterMouseMove, false);
+    document.body.removeEventListener('mouseup', cropCapture.onCenterMouseUp, false);
   },
 
   autoScrollMovement: function (direction) {
@@ -1227,15 +1237,15 @@ var captureRegion = {
       var scrollTop  = body.scrollTop;
       var scrollLeft = body.scrollLeft;
 
-      var cropWidth  = captureRegion.cropBounds.width;
-      var cropHeight = captureRegion.cropBounds.height;
-      var cropLeft   = parseInt(captureRegion.cropCenterElem.style.left, 10);
-      var cropTop    = parseInt(captureRegion.cropCenterElem.style.top, 10);
+      var cropWidth  = cropCapture.cropBounds.width;
+      var cropHeight = cropCapture.cropBounds.height;
+      var cropLeft   = parseInt(cropCapture.cropCenterElem.style.left, 10);
+      var cropTop    = parseInt(cropCapture.cropCenterElem.style.top, 10);
 
       var xOverflow = cropWidth > clientWidth;
       var yOverflow = cropHeight > clientHeight;
 
-      var scrollDist = captureRegion.scrollDist;
+      var scrollDist = cropCapture.scrollDist;
 
       var scrolled = false;
 
@@ -1279,15 +1289,15 @@ var captureRegion = {
         body.scrollTop  = scrollTop;
         body.scrollLeft = scrollLeft;
 
-        captureRegion.updateCropElements({
+        cropCapture.updateCropElements({
           top: cropTop,
           left: cropLeft,
           width: cropWidth,
           height: cropHeight
         });
 
-        captureRegion.setupScrollTimer(function () {
-          captureRegion.autoScrollMovement(direction);
+        cropCapture.setupScrollTimer(function () {
+          cropCapture.autoScrollMovement(direction);
         });
       }
     }
@@ -1298,34 +1308,34 @@ var captureRegion = {
     e.preventDefault();
     e.stopPropagation();
 
-    captureRegion.currentController = controller;
+    cropCapture.currentController = controller;
 
-    document.body.addEventListener('mousemove', captureRegion.onControllerMouseMove, false);
-    document.body.addEventListener('mouseup', captureRegion.onControllerMouseUp, false);
+    document.body.addEventListener('mousemove', cropCapture.onControllerMouseMove, false);
+    document.body.addEventListener('mouseup', cropCapture.onControllerMouseUp, false);
 
-    captureRegion.startX = e.pageX;
-    captureRegion.startY = e.pageY;
-    captureRegion.lastX  = e.pageX;
-    captureRegion.lastY  = e.pageY;
+    cropCapture.startX = e.pageX;
+    cropCapture.startY = e.pageY;
+    cropCapture.lastX  = e.pageX;
+    cropCapture.lastY  = e.pageY;
 
-    captureRegion.cropBounds = captureRegion.getCropBounds();
+    cropCapture.cropBounds = cropCapture.getCropBounds();
   },
 
   onControllerMouseMove: function (e) {
 
     e.preventDefault();
 
-    captureRegion.clearScrollTimer();
+    cropCapture.clearScrollTimer();
 
-    var dx = e.pageX - captureRegion.startX;
-    var dy = e.pageY - captureRegion.startY;
+    var dx = e.pageX - cropCapture.startX;
+    var dy = e.pageY - cropCapture.startY;
 
-    var top    = captureRegion.cropBounds.top;
-    var left   = captureRegion.cropBounds.left;
-    var right  = left + captureRegion.cropBounds.width;
-    var bottom = top + captureRegion.cropBounds.height;
+    var top    = cropCapture.cropBounds.top;
+    var left   = cropCapture.cropBounds.left;
+    var right  = left + cropCapture.cropBounds.width;
+    var bottom = top + cropCapture.cropBounds.height;
 
-    switch (captureRegion.currentController) {
+    switch (cropCapture.currentController) {
 
       case 1:
         left += dx;
@@ -1367,32 +1377,32 @@ var captureRegion = {
         break;
     }
 
-    captureRegion.updateCropElements({
+    cropCapture.updateCropElements({
       top: Math.min(top, bottom),
       left: Math.min(left, right),
       width: Math.abs(left - right),
       height: Math.abs(top - bottom)
     });
 
-    captureRegion.autoScrollController(e.pageX, e.pageY);
+    cropCapture.autoScrollController(e.pageX, e.pageY);
   },
 
   onControllerMouseUp: function (e) {
 
-    captureRegion.currentController = 0;
+    cropCapture.currentController = 0;
 
-    captureRegion.clearScrollTimer();
+    cropCapture.clearScrollTimer();
 
-    document.body.removeEventListener('mousemove', captureRegion.onControllerMouseMove, false);
-    document.body.removeEventListener('mouseup', captureRegion.onControllerMouseUp, false);
+    document.body.removeEventListener('mousemove', cropCapture.onControllerMouseMove, false);
+    document.body.removeEventListener('mouseup', cropCapture.onControllerMouseUp, false);
 
-    var bounds = captureRegion.getCropBounds();
+    var bounds = cropCapture.getCropBounds();
 
     if (!bounds.width || !bounds.height) {
-      captureRegion.clearController();
-      captureRegion.unBindCenter();
-      captureRegion.bindCrossLine();
-      captureRegion.updateCrossLine(e);
+      cropCapture.clearController();
+      cropCapture.unBindCenter();
+      cropCapture.bindCrossLine();
+      cropCapture.updateCrossLine(e);
     }
   },
 
@@ -1411,15 +1421,15 @@ var captureRegion = {
       var scrollTop  = body.scrollTop;
       var scrollLeft = body.scrollLeft;
 
-      var bounds = captureRegion.getCropBounds();
+      var bounds = cropCapture.getCropBounds();
       var top    = bounds.top;
       var left   = bounds.left;
       var right  = left + bounds.width;
       var bottom = top + bounds.height;
 
-      var scrollDist        = captureRegion.scrollDist;
-      var scrollSense       = captureRegion.scrollSense;
-      var currentController = captureRegion.currentController;
+      var scrollDist        = cropCapture.scrollDist;
+      var scrollSense       = cropCapture.scrollSense;
+      var currentController = cropCapture.currentController;
 
       var scrolled = false;
 
@@ -1473,15 +1483,15 @@ var captureRegion = {
         body.scrollLeft = scrollLeft;
         body.scrollTop  = scrollTop;
 
-        captureRegion.updateCropElements({
+        cropCapture.updateCropElements({
           top: Math.min(top, bottom),
           left: Math.min(left, right),
           width: Math.abs(left - right),
           height: Math.abs(top - bottom)
         });
 
-        captureRegion.setupScrollTimer(function () {
-          captureRegion.autoScrollController(pageX, pageY);
+        cropCapture.setupScrollTimer(function () {
+          cropCapture.autoScrollController(pageX, pageY);
         });
       }
     }
@@ -1497,14 +1507,14 @@ var captureRegion = {
 
   setupScrollTimer: function (callback) {
 
-    captureRegion.scrollTimer = setTimeout(callback, captureRegion.scrollDelay);
+    cropCapture.scrollTimer = setTimeout(callback, cropCapture.scrollDelay);
   },
 
   clearScrollTimer: function () {
 
-    if (captureRegion.scrollTimer) {
-      clearTimeout(captureRegion.scrollTimer);
-      captureRegion.scrollTimer = 0;
+    if (cropCapture.scrollTimer) {
+      clearTimeout(cropCapture.scrollTimer);
+      cropCapture.scrollTimer = 0;
     }
   }
 };
@@ -1874,17 +1884,6 @@ var worker = {
 
     chrome.runtime.sendMessage(message);
   },
-};
-
-var handler = {
-
-  captureElement: function () { captureElement.start(); },
-
-  captureRegion: function () { captureRegion.start(); },
-
-  captureEntire: function () { worker.start(document.documentElement); },
-
-  nextFragment: function () { worker.dispatch(); },
 };
 
 var utils = {
