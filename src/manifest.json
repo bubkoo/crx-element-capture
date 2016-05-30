@@ -7,14 +7,15 @@
   "minimum_chrome_version": "26",
   "offline_enabled": true,
   "icons": {
-    "16": "images/screenshot-16.png",
-    "48": "images/screenshot-48.png",
-    "128": "images/screenshot-48.png"
+    "16": "images/lens-16.png",
+    "32": "images/lens-32.png",
+    "48": "images/lens-48.png",
+    "128": "images/lens-128.png"
   },
   "browser_action": {
     "default_icon": {
-      "19": "images/screenshot-18.png",
-      "38": "images/screenshot-39.png"
+      "19": "images/lens-19.png",
+      "38": "images/lens-38.png"
     },
     "default_popup": "popup.html",
     "default_title": "Click me and select element to capture"
