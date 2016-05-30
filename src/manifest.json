@@ -11,14 +11,6 @@
     "48": "images/screenshot-48.png",
     "128": "images/screenshot-48.png"
   },
-  "permissions": [
-    "tabs",
-    "<all_urls>",
-    "activeTab",
-    "storage",
-    "contextMenus",
-    "clipboardWrite"
-  ],
   "browser_action": {
     "default_icon": {
       "19": "images/screenshot-18.png",
@@ -42,5 +34,14 @@
       ],
       "all_frames": false
     }
-  ]
+  ],
+  "permissions": [
+    "tabs",
+    "<all_urls>",
+    "activeTab",
+    "storage",
+    "contextMenus",
+    "clipboardWrite"
+  ],
+  "content_security_policy": "script-src 'self' https://www.google-analytics.com; object-src 'self'"
 }

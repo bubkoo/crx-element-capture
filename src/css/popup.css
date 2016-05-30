@@ -18,3 +18,12 @@ body {
   position: relative;
   padding-left: 20px;
 }
+
+.hide {
+  display: none;
+}
+
+#git-stars {
+  width: 170px;
+  height: 20px;
+}
