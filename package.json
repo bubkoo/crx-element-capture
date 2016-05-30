@@ -1,7 +1,7 @@
 {
-  "name": "crx-element-capture",
+  "name": "crx-screen-grabber",
   "version": "0.0.1",
-  "description": "Chrome extension for screen capture any HTML element on a webpage.",
+  "description": "Screen capture extension for Google Chrome.",
   "main": "index.js",
   "scripts": {
     "less": "",
@@ -26,12 +26,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bubkoo/crx-element-capture.git"
+    "url": "git+https://github.com/bubkoo/crx-screen-grabber.git"
   },
   "bugs": {
-    "url": "https://github.com/bubkoo/crx-element-capture/issues"
+    "url": "https://github.com/bubkoo/crx-screen-grabber/issues"
   },
-  "homepage": "https://github.com/bubkoo/crx-element-capture#readme",
+  "homepage": "https://github.com/bubkoo/crx-screen-grabber#readme",
   "dependencies": {
     "jquery": "^2.2.3",
     "normalize.css": "^4.1.1"
