@@ -1595,7 +1595,7 @@ var worker = {
       worker.bindEvents();
       worker.prepareFragments();
       if (worker.hasFragment()) {
-        worker.dispatch(true);
+        worker.dispatch();
       }
     }
   },
@@ -1639,16 +1639,16 @@ var worker = {
     worker.sendMessage({ action: 'onCaptureEnd' });
   },
 
-  dispatch: function (isFirst) {
+  dispatch: function () {
 
     if (worker.hasFragment()) {
-      worker.nextFragment(isFirst);
+      worker.nextFragment();
     } else {
       worker.finish();
     }
   },
 
-  nextFragment: function (isFirst) {
+  nextFragment: function () {
 
     var next = worker.fragments.shift();
 
@@ -1675,7 +1675,7 @@ var worker = {
 
     worker.timer = setTimeout(function () {
       worker.sendMessage({ action: 'onFragment', fragment: next });
-    }, isFirst ? 50 : worker.delay);
+    }, worker.delay);
   },
 
   hasFragment: function () {
