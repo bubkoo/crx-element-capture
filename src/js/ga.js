@@ -21,43 +21,52 @@
 
 })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
 
-var handlers = {
-  '/popup.html': function () {
+(function () {
 
-    // capture buttons
-    $('.capture-menu').on('click', 'li', function () {
-      ga('send', {
-        hitType: 'event',
-        eventCategory: 'popup',
-        eventAction: 'capture',
-        eventLabel: this.id
+  var handlers = {
+
+    '/popup.html': function () {
+
+      // capture buttons
+      $('.capture-menu').on('click', 'li', function () {
+        ga('send', {
+          hitType: 'event',
+          eventCategory: 'popup',
+          eventAction: 'capture',
+          eventLabel: this.id
+        });
       });
-    });
 
-    // stars
-    $('#git-stars').on('click', function () {
-      ga('send', {
-        hitType: 'social',
-        socialNetwork: 'github',
-        socialAction: 'star',
-        socialTarget: STAR_URL
+      // stars
+      $('#git-stars').on('click', function () {
+        ga('send', {
+          hitType: 'social',
+          socialNetwork: 'github',
+          socialAction: 'star',
+          socialTarget: STAR_URL
+        });
       });
-    });
-  },
-  '/editor.html': function () {
+    },
 
-  },
-  '/options.html': function () {
+    '/editor.html': function () {
 
+    },
+
+    '/options.html': function () {
+
+    }
+  };
+
+  var pathname = window.location.pathname;
+  var handler  = handlers[pathname];
+
+  ga('create', 'UA-78428859-1', 'auto');
+  ga('send', 'pageview', pathname);
+
+  if (handler) {
+    handler();
   }
-};
 
-var pathname = window.location.pathname;
-var handler  = handlers[pathname];
+})();
 
-ga('create', 'UA-78428859-1', 'auto');
-ga('send', 'pageview', pathname);
 
-if (handler) {
-  handler();
-}

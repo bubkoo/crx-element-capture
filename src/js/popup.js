@@ -1,29 +1,35 @@
 var STAR_URL = 'https://ghbtns.com/github-btn.html?user=bubkoo&repo=crx-screen-grabber&type=star&count=true';
 
+(function () {
 
-var bgWindow = chrome.extension.getBackgroundPage();
-var handler  = bgWindow.handler;
+  var bgWindow = chrome.extension.getBackgroundPage();
+  var handler  = bgWindow.handler;
 
-function i18n() {}
+  function i18n() {}
 
-function initFooter() {
-  setTimeout(function () {
-    $('#git-stars').attr('src', STAR_URL);
-  }, 500);
-}
+  function initFooter() {
+    setTimeout(function () {
+      $('#git-stars').attr('src', STAR_URL);
+    }, 500);
+  }
 
-$(function () {
+  $(function () {
 
-  i18n();
-  initFooter();
+    i18n();
+    initFooter();
 
-  $('.capture-menu').on('click', 'li', function () {
+    $('.capture-menu').on('click', 'li', function () {
 
-    var method = this.id;
-    if (method && handler[method]) {
-      handler[method]();
-    }
+      var method = this.id;
+      if (method && handler[method]) {
+        handler[method]();
+      }
 
-    window.close();
+      window.close();
+    });
   });
-});
+
+})();
+
+
+

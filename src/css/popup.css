@@ -17,7 +17,7 @@ body {
 }
 
 .capture-menu {
-  width: 250px;
+  width: 260px;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -33,12 +33,12 @@ body {
   font-size: 12px;
   border-bottom: 1px solid #EEE;
   color: #333;
-  background-color: rgba(255, 255, 255, .9);
-  -webkit-transition: all .3s;
-  -moz-transition: all .3s;
-  -ms-transition: all .3s;
-  -o-transition: all .3s;
-  transition: all .3s;
+  background-color: #fff;
+  -webkit-transition: all .2s;
+  -moz-transition: all .2s;
+  -ms-transition: all .2s;
+  -o-transition: all .2s;
+  transition: all .2s;
 }
 
 .capture-menu li:hover {
