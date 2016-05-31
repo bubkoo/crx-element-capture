@@ -1,4 +1,4 @@
-var STAR_URL = 'https://ghbtns.com/github-btn.html?user=bubkoo&repo=crx-element-capture&type=star&count=true';
+var STAR_URL = 'https://ghbtns.com/github-btn.html?user=bubkoo&repo=crx-screen-grabber&type=star&count=true';
 
 
 var bgWindow = chrome.extension.getBackgroundPage();
@@ -9,7 +9,7 @@ function i18n() {}
 function initFooter() {
   setTimeout(function () {
     $('#git-stars').attr('src', STAR_URL);
-  }, 100);
+  }, 500);
 }
 
 $(function () {

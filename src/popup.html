@@ -1,42 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Popup</title>
-    <meta name="author" content="bubkoo">
-    <meta name="description" content="">
+    <title>Screen Grabber Popup</title>
     <link type="text/css" rel="stylesheet" href="css/normalize.css">
     <link type="text/css" rel="stylesheet" href="css/popup.css">
 </head>
 <body>
-<header>
-    Screen Grabber
-</header>
 <section>
     <ul class="capture-menu">
         <li id="captureElement">
-            <span class="icon"></span>
+            <svg class="icon icon-crop-center">
+                <use xlink:href="symbol-defs.svg#icon-crop-center"></use>
+            </svg>
             <span class="label">截取选择元素</span>
+            <span class="shortcut">Ctrl+Shift+N</span>
         </li>
         <li id="captureRegion">
-            <span class="icon"></span>
+            <svg class="icon icon-crop">
+                <use xlink:href="symbol-defs.svg#icon-crop"></use>
+            </svg>
             <span class="label">截取选择区域</span>
-        </li>
-        <li id="captureEntire">
-            <span class="icon"></span>
-            <span class="label">截取整个页面</span>
+            <span class="shortcut">Ctrl+Shift+S</span>
         </li>
         <li id="captureVisible">
-            <span class="icon"></span>
+            <svg class="icon icon-visibility">
+                <use xlink:href="symbol-defs.svg#icon-visibility"></use>
+            </svg>
             <span class="label">截取可见部分</span>
+            <span class="shortcut">Ctrl+Shift+V</span>
+        </li>
+        <li id="captureEntire">
+            <svg class="icon icon-fullscreen">
+                <use xlink:href="symbol-defs.svg#icon-fullscreen"></use>
+            </svg>
+            <span class="label">截取整个页面</span>
+            <span class="shortcut">Ctrl+Shift+F</span>
         </li>
         <li id="captureWindow">
-            <span class="icon"></span>
+            <svg class="icon icon-desktop-windows">
+                <use xlink:href="symbol-defs.svg#icon-desktop-windows"></use>
+            </svg>
             <span class="label">截取桌面窗口</span>
+            <span class="shortcut">Ctrl+Shift+D</span>
+        </li>
+        <li id="editContent">
+            <svg class="icon icon-edit">
+                <use xlink:href="symbol-defs.svg#icon-edit"></use>
+            </svg>
+            <span class="label">编辑网页内容</span>
+            <span class="shortcut">Ctrl+Shift+E</span>
         </li>
     </ul>
 </section>
-<footer>
+<footer class="footer">
     <iframe id="git-stars" frameborder="0" scrolling="0">
     </iframe>
 </footer>

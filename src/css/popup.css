@@ -1,27 +1,83 @@
 body {
-  width: 200px;
+  padding: 0;
+  margin: 0;
   user-select: none;
   -webkit-user-select: none;
   background-color: rgba(255, 255, 255, .9);
+  font-family: Helvetica, tahoma, Arial, 'Lantinghei SC', 'Hiragino Sans GB', STHeitiSC-Light, 'Microsoft YaHei', 微软雅黑;
+  font-size: 12px;
+  line-height: 1.66667;
+}
+
+.icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
 .capture-menu {
+  width: 250px;
   list-style: none;
   padding: 0;
   margin: 0;
+  border-bottom: 1px #E4E4E4 solid;
 }
 
 .capture-menu li {
-  cursor: pointer;
-  height: 25px;
-  line-height: 25px;
-
   position: relative;
-  padding-left: 20px;
+  cursor: pointer;
+  height: 30px;
+  line-height: 30px;
+  padding-left: 32px;
+  font-size: 12px;
+  border-bottom: 1px solid #EEE;
+  color: #333;
+  background-color: rgba(255, 255, 255, .9);
+  -webkit-transition: all .3s;
+  -moz-transition: all .3s;
+  -ms-transition: all .3s;
+  -o-transition: all .3s;
+  transition: all .3s;
 }
 
-.hide {
-  display: none;
+.capture-menu li:hover {
+  color: #0BE;
+  background-color: #F6F6F6;
+}
+
+.capture-menu li:last-child {
+  border-bottom: 0;
+}
+
+.capture-menu .icon {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+}
+
+.capture-menu .shortcut {
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: #C9C9C9;
+  text-align: justify;
+  width: 80px;
+}
+
+.footer {
+  background: #FFF; /* Old browsers */
+  background: -moz-linear-gradient(top, #FFF 0%, #EAEAEA 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #FFF), color-stop(100%, #EAEAEA)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top, #FFF 0%, #EAEAEA 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top, #FFF 0%, #EAEAEA 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top, #FFF 0%, #EAEAEA 100%); /* IE10+ */
+  background: linear-gradient(to bottom, #FFF 0%, #EAEAEA 100%); /* W3C */
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#eaeaea', GradientType=0); /* IE6-9 */
+  padding: 10px;
+  color: #3E3E3E;
+  font-size: 12px;
+  line-height: 20px;
 }
 
 #git-stars {
