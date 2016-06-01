@@ -2,9 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Options</title>
+    <title>Options - Screen Grabber</title>
+    <link type="text/css" rel="stylesheet" href="css/normalize.css">
+    <link type="text/css" rel="stylesheet" href="css/options.css">
 </head>
 <body>
-
+<div class="wrap">
+    <header class="header">
+        <h1>Screen Grabber Options</h1>
+    </header>
+    <div class="body">
+        <fieldset id="format">
+            <legend>Image Format</legend>
+            <input type="radio" name="format" value="PNG" id="png"
+                   checked="checked"><label for="png">PNG</label>
+            <input type="radio" name="format" value="JPG" id="jpg">
+            <label for="jpg">JPG</label>
+            <div original-title="Only for JPG">
+                <input id="quality" class="range" type="range" min="10" max="100" step="1" value="90" disabled="">
+                <span id="quality-value" class="range-value"><span class="value">100</span> %</span>
+            </div>
+        </fieldset>
+        <fieldset id="format">
+            <legend>SAVE SETTINGS</legend>
+        </fieldset>
+        <fieldset id="format">
+            <legend>CAPTURE SETTINGS</legend>
+        </fieldset>
+        <fieldset id="format">
+            <legend>SHORTCUT SETTINGS</legend>
+        </fieldset>
+    </div>
+    <footer class="footer">
+        <input type="button" value="Reset">
+        <input type="button" value="Save">
+        <input type="button" value="Close">
+    </footer>
+</div>
+<div class="copyright">
+    © 2016 bubkoo
+</div>
+<script src="js/lib/jquery-2.2.3.min.js"></script>
+<script src="js/options.js"></script>
+<script src="js/ga.js"></script>
 </body>
 </html>
