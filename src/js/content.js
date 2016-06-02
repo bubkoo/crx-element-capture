@@ -1686,7 +1686,6 @@ var worker = {
   prepareFragments: function () {
 
     var targetElem = worker.targetElem;
-
     if (targetElem) {
 
       worker.scrollParent = utils.isBody(targetElem)
@@ -1777,22 +1776,31 @@ var worker = {
   hideScrollBar: function () {
 
     // save parent's status
-    worker.originOverflow   = worker.scrollParent.style.overflow;
-    worker.originScrollTop  = worker.scrollParent.scrollTop;
-    worker.originScrollLeft = worker.scrollParent.scrollLeft;
+    //worker.originOverflow   = worker.scrollParent.style.overflow;
+    //worker.originScrollTop  = worker.scrollParent.scrollTop;
+    //worker.originScrollLeft = worker.scrollParent.scrollLeft;
+    //
+    //// disable all scrollBars, restore it when captured
+    //utils.setStyle(worker.scrollParent, {
+    //  overflow: 'hidden'
+    //});
+    //
+    var scrollParent = worker.scrollParent;
 
-    // disable all scrollBars, restore it when captured
-    utils.setStyle(worker.scrollParent, {
-      overflow: 'hidden'
+    utils.exchangeStyle(scrollParent, {
+      overflow: 'hidden',
+      scrollTop: scrollParent.scrollTop,
+      scrollLeft: scrollParent.scrollLeft
     });
   },
 
   restoreScrollBar: function () {
 
     // restore the parent's scrollBar
-    worker.scrollParent.style.overflow = worker.originOverflow;
-    worker.scrollParent.scrollTop      = worker.originScrollTop;
-    worker.scrollParent.scrollLeft     = worker.originScrollLeft;
+    utils.restoreStyle(worker.scrollParent, ['overflow', 'scrollTop', 'scrollLeft']);
+    //worker.scrollParent.style.overflow = worker.originOverflow;
+    //worker.scrollParent.scrollTop      = worker.originScrollTop;
+    //worker.scrollParent.scrollLeft     = worker.originScrollLeft;
   },
 
   adjustViewports: function () {
@@ -1947,26 +1955,62 @@ var utils = {
     return utils.createElement('div');
   },
 
-  setProp: function (elem, prop, value) {
+  setProp: function (elem, name, value) {
 
-    if (utils.isObject(prop)) {
-      for (var key in prop) {
-        elem[key] = prop[key];
+    if (utils.isObject(name)) {
+      for (var key in name) {
+        elem[key] = name[key];
       }
     } else {
-      elem[prop] = value;
+      elem[name] = value;
     }
   },
 
-  setStyle: function (elem, prop, value) {
+  setStyle: function (elem, name, value) {
 
-    if (utils.isObject(prop)) {
-      for (var key in prop) {
-        elem.style[key] = prop[key];
+    if (utils.isObject(name)) {
+      for (var key in name) {
+        elem.style[key] = name[key];
       }
     } else {
-      elem.style[prop] = value;
+      elem.style[name] = value;
     }
+  },
+
+  exchangeStyle: function (elem, name, value) {
+
+    var store = elem.__style;
+    if (!store) {
+      store = elem.__style = {};
+    }
+
+    if (utils.isObject(name)) {
+      for (var key in name) {
+        store[key]      = elem.style[key];
+        elem.style[key] = name[key];
+      }
+    } else {
+      store[name]      = elem.style[name];
+      elem.style[name] = value;
+    }
+  },
+
+  restoreStyle: function (elem, names) {
+
+    if (!Array.isArray(names)) {
+      names = [names];
+    }
+
+    var store = elem.__style || {};
+
+    console.log(store);
+
+    names.forEach(function (name) {
+      if (store.hasOwnProperty(name)) {
+        elem.style[name] = store[name];
+        delete store[name];
+      }
+    });
   },
 
   setZIndex: function (elem, zIndex) {
