@@ -1,4 +1,4 @@
-# crx-screen-grabber
+# crx-screen-capture
 
 > Screen capture extension for Google Chrome.
 

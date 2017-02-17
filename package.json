@@ -1,5 +1,5 @@
 {
-  "name": "crx-screen-grabber",
+  "name": "crx-screen-capture",
   "version": "0.0.1",
   "description": "Screen capture extension for Google Chrome.",
   "main": "index.js",
